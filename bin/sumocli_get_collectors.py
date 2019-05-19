@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: get_collectors a cmdlet within the sumocli that retrieves all collector ids
+Exaplanation: get_collectors a cmdlet within the sumocli that retrieves collector information
 
 Usage:
-   $ python  get_collector [ options ] <object>
+   $ python  get_collectors [ options ]
 
 Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumoget
+    @name           sumocli_get_collectors
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
@@ -50,8 +50,11 @@ PARSER.add_argument("-c", metavar='<cfg>', dest='MY_CFG', help="Set Sumo configf
 PARSER.add_argument("-f", metavar='<fmt>', default="list", dest='oformat', \
                     help="Specify output format (default = list )")
 
-PARSER.add_argument("-i", type=int, default=0, metavar='<id>', \
-                    dest='collectorid', help="provide specific id")
+PARSER.add_argument("-m", type=int, default=0, metavar='<myself>', \
+                    dest='myid', help="provide specific id to lookup")
+
+PARSER.add_argument("-p", type=int, default=0, metavar='<parent>', \
+                    dest='parentid', help="provide parent id to locate with")
 
 PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
                     dest='verbose', help="Increase verbosity")
@@ -92,7 +95,7 @@ def main():
 
 def run_sumo_cmdlet(src):
     """
-    This will collect the information on given collector or all collectors into a list.
+    This will collect the information on object for sumologic and then collect that into a list.
     the output of the action will provide a tuple of the orgid, objecttype, and id
     """
     target_object = "collector"
@@ -100,11 +103,11 @@ def run_sumo_cmdlet(src):
     target_dict["orgid"] = SUMO_ORG
     target_dict[target_object] = dict()
 
-    if ARGS.collectorid > 0:
-        src_col = src.get_collector(ARGS.collectorid)
+    if ARGS.myid > 0:
+        src_col = src.get_collector(ARGS.myid)
         target_dict[target_object][src_col['id']] = src_col['name']
 
-    if ARGS.collectorid == 0:
+    if ARGS.myid == 0:
         src_cols = src.get_collectors()
         for src_col in src_cols:
             target_dict[target_object][src_col['id']] = src_col['name']
@@ -179,11 +182,11 @@ class SumoApiClient():
         url = self.base_url + "/v1/collectors"
         return self.__http_get(url)['collectors']
 
-    def get_collector(self, collectorid):
+    def get_collector(self, myid):
         """
         Using an HTTP client, this uses a GET to retrieve the collector information.
         """
-        url = self.base_url + "/v1/collectors/" + str(collectorid)
+        url = self.base_url + "/v1/collectors/" + str(myid)
         return self.__http_get(url)['collector']
 
 ### included code
