@@ -47,7 +47,7 @@ PARSER.add_argument("-o", metavar='<org>', dest='MY_ORG', help="Set Sumo orgid")
 
 PARSER.add_argument("-c", metavar='<cfg>', dest='MY_CFG', help="Set Sumo configfile")
 
-PARSER.add_argument("-f", metavar='<fmt>', dest='oformat', \
+PARSER.add_argument("-f", metavar='<fmt>', default="list", dest='oformat', \
                     help="Specify output format (default = list )")
 
 PARSER.add_argument("-i", type=int, default=0, metavar='<id>', \
@@ -92,11 +92,8 @@ def main():
 
 def run_sumo_cmdlet(src):
     """
-    This will collect the information for all collectors, into an ordered list
-    The format of the list is:
-	+ orgid
-	+ deployment
-	+ collector_id
+    This will collect the information on given collector or all collectors into a list.
+    the output of the action will provide a tuple of the orgid, objecttype, and id
     """
     target_object = "collector"
     target_dict = dict()
