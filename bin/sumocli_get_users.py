@@ -110,7 +110,7 @@ def run_sumo_cmdlet(src):
            target_dict[target_object][src_item['id']] = dict()
            target_dict[target_object][src_item['id']].update( { 'parent' : SUMO_ORG } )
            target_dict[target_object][src_item['id']].update( { 'id' : src_item['id'] } )
-           target_dict[target_object][src_item['id']].update( { 'name' : src_item['name'] } )
+           target_dict[target_object][src_item['id']].update( { 'email' : src_item['email'] } )
            target_dict[target_object][src_item['id']].update( { 'dump' : src_item } )
 
     if ARGS.oformat == "sum":

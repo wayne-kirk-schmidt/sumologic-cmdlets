@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: sumoget a means to collect information from sumo installations
+Exaplanation: this is a get cmdlet within the sumocli that retrieves collector information
 
 Usage:
-   $ python  sumoget [ options ] <object>
+   $ python  get_template [ options ]
 
 Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumoget
+    @name           sumocli_get_template
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
@@ -34,22 +34,33 @@ sys.dont_write_bytecode = 1
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
 
-sumocli is a command line interface to SumoLogic API
-it aallows your security and devops teams to perform
-audits, devops, health checks, and other tasks and
-enabling you to have all items as code.
+get_get_template is part of sumocli, a tool which wraps the Sumologic API.
+It meshes with DevOps practices and allows teams to query, audit, backup, 
+and manage sumologic deployments in an agile and modular way.
 
 """)
 
-PARSER.add_argument("-u", "--uid", metavar='<uid>', dest='MY_UID', help="Set Sumo Uid")
-PARSER.add_argument("-k", "--key", metavar='<key>', dest='MY_KEY', help="Set Sumo Key")
-PARSER.add_argument("-a", "--api", metavar='<api>', dest='MY_API', help="Set Sumo API")
-PARSER.add_argument("-o", "--org", metavar='<org>', dest='MY_ORG', help="Set Sumo Org")
-PARSER.add_argument("-c", "--cfg", metavar='<cfg>', dest='MY_CFG', help="Set Sumo Config File")
+PARSER.add_argument("-u", metavar='<uid>', dest='MY_UID', help="Set Sumo apiuid")
+PARSER.add_argument("-k", metavar='<key>', dest='MY_KEY', help="Set Sumo apikey")
+PARSER.add_argument("-a", metavar='<api>', dest='MY_API', help="Set Sumo apiservice")
+PARSER.add_argument("-o", metavar='<org>', dest='MY_ORG', help="Set Sumo orgid")
 
-PARSER.add_argument("-v", type=int, default=0, metavar='<int>', \
+PARSER.add_argument("-c", metavar='<cfg>', dest='MY_CFG', help="Set Sumo configfile")
+
+PARSER.add_argument("-f", metavar='<fmt>', default="list", dest='oformat', \
+                    help="Specify output format (default = list )")
+
+PARSER.add_argument("-m", type=int, default=0, metavar='<myself>', \
+                    dest='myself', help="provide specific id to lookup")
+
+PARSER.add_argument("-p", type=int, default=0, metavar='<parent>', \
+                    dest='parentid', help="provide parent id to locate with")
+
+PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
                     dest='verbose', help="Increase verbosity")
-PARSER.add_argument("-n", action='store_true', help="Print but do not execute commands")
+
+PARSER.add_argument("-n", "--noexec", action='store_true', \
+                    help="Print but do not execute commands")
 
 ARGS = PARSER.parse_args()
 
@@ -66,10 +77,9 @@ try:
     SUMO_UID = os.environ['SUMO_UID']
     SUMO_KEY = os.environ['SUMO_KEY']
     SUMO_API = os.environ['SUMO_API']
+    SUMO_ORG = os.environ['SUMO_ORG']
 except KeyError as myerror:
     print('Environment Variable Not Set :: {} '.format(myerror.args[0]))
-
-### SUMO_CRED = SUMO_UID + ':' + SUMO_KEY
 
 PP = pprint.PrettyPrinter(indent=4)
 SUMO_CRED = SUMO_UID + ':' + SUMO_KEY
@@ -81,39 +91,37 @@ def main():
     Once done, then issue the command required
     """
     src = SumoApiClient(SUMO_UID, SUMO_KEY, SUMO_API)
-    list_collectors(src)
+    run_sumo_cmdlet(src)
 
-def list_collectors(src):
+def run_sumo_cmdlet(src):
     """
-    First enumerate through all collectors and then for each, collect the sources.
-    There are two methods;
-      + the first is collect the list of sources per collectors
-      + and the second is scoop the JSON
+    This will collect the information on object for sumologic and then collect that into a list.
+    the output of the action will provide a tuple of the orgid, objecttype, and id
     """
-    src_cols = src.get_collectors()
-    for src_col in src_cols:
-        src_sources = src.get_sources(src_col['id'])
-        my_cid = src_col['id']
-        src_sources = src.get_sources(my_cid)
-        for src_source in src_sources:
-            if ARGS.verbose > 0:
-                print('COLLECTOR :: {} :: {} :: {} ::'.format(src_col['id'], \
-                      src_col['name'], src_source['name']))
-        src_contents = src.get_source_contents(my_cid, SUMO_CRED)
-        src_list = src_contents['sources']
-        for src_item in src_list:
-            src_n = src_item['name']
-            src_e = src_item['encoding']
-            src_t = src_item['sourceType']
-            src_c = 'undefined'
-            if 'category' in src_item:
-                src_c = src_item['category']
-            src_x = 'undefined'
-            if 'script' in src_item:
-                src_x = src_item['script']
-            if ARGS.verbose > 4:
-                print('COLLECTOR :: {} :: SOURCE :: {} :: {} :: {} :: {} :: {} ::'.format(
-                    my_cid, src_n, src_e, src_t, src_c, src_x))
+    target_object = "objectname"
+    target_dict = dict()
+    target_dict["orgid"] = SUMO_ORG
+    target_dict[target_object] = dict()
+
+    src_items = src.get_objects()
+    for src_item in src_items:
+        if ( src_item['id'] == str(ARGS.myself) or ARGS.myself == 0):
+           target_dict[target_object][src_item['id']] = dict()
+           target_dict[target_object][src_item['id']].update( { 'parent' : SUMO_ORG } )
+           target_dict[target_object][src_item['id']].update( { 'id' : src_item['id'] } )
+           target_dict[target_object][src_item['id']].update( { 'name' : src_item['name'] } )
+           target_dict[target_object][src_item['id']].update( { 'dump' : src_item } )
+
+    if ARGS.oformat == "sum":
+        print('Orgid: {} {} number: {}'.format(SUMO_ORG, \
+            target_object, len(target_dict[target_object])))
+
+    if ARGS.oformat == "list":
+        for key in sorted(target_dict[target_object].keys()):
+            print('{},{},{}'.format(SUMO_ORG, target_object, key))
+
+    if ARGS.oformat == "json":
+        print(json.dumps(target_dict, indent=4))
 
 class SumoApiClient():
     """
@@ -131,30 +139,6 @@ class SumoApiClient():
         self.access_id = access_id
         self.access_key = access_key
         self.base_url = 'https://api.' + region + '.sumologic.com/api'
-
-    def get_collectors(self):
-        """
-        Using an HTTP client, this uses a GET to retrieve the collector information.
-        """
-        url = self.base_url + "/v1/collectors"
-        return self.__http_get(url)['collectors']
-
-    def get_sources(self, collector_id):
-        """
-        Using an HTTP client, this lists the sources for a given collector ID,
-        but does not return the JSON
-        """
-        url = self.base_url + "/v1/collectors/" + str(collector_id) + '/sources'
-        return self.__http_get(url)['sources']
-
-    def get_source_contents(self, collector_id, creds):
-        """
-        Using an HTTP client, this will collect the JSON by appending downlload to stream data.
-        """
-        url = self.base_url + "/v1/collectors/" + str(collector_id) + '/sources' + '?download=true'
-        if ARGS.verbose > 1:
-            print('curl -u {} -X GET {}'.format(creds, url))
-        return self.__http_get(url)
 
     def __http_get(self, url):
         """
@@ -188,6 +172,24 @@ class SumoApiClient():
         basic = base64.b64encode('{}:{}'.format(self.access_id, self.access_key).encode('utf-8'))
         return {"Authorization": "Basic " + basic.decode('utf-8'), \
         "Content-Type": "application/json"}
+
+### included code
+
+    def get_objects(self):
+        """
+        Using an HTTP client, this uses a GET to retrieve all object information.
+        """
+        url = self.base_url + "/v1/objectname"
+        return self.__http_get(url)['objectname']
+
+    def get_object(self, myself):
+        """
+        Using an HTTP client, this uses a GET to retrieve single object information.
+        """
+        url = self.base_url + "/v1/objectname/" + str(myself)
+        return self.__http_get(url)['objectname']
+
+### included code
 
 if __name__ == '__main__':
     main()
