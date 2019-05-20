@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: get_collectors a cmdlet within the sumocli that retrieves collector information
+Exaplanation: get_sources a cmdlet within the sumocli that retrieves sources information
 
 Usage:
-   $ python  get_collectors [ options ]
+   $ python  get_sources [ options ]
 
 Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumocli_get_collectors
+    @name           sumocli_get_sources
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
@@ -34,7 +34,7 @@ sys.dont_write_bytecode = 1
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
 
-get_collectors is part of sumocli, a tool which wraps the Sumologic API.
+get_sources is part of sumocli, a tool which wraps the Sumologic API.
 It meshes with DevOps practices and allows teams to query, audit, backup, 
 and manage sumologic deployments in an agile and modular way.
 
@@ -54,7 +54,7 @@ PARSER.add_argument("-m", type=int, default=0, metavar='<myself>', \
                     dest='myself', help="provide specific id to lookup")
 
 PARSER.add_argument("-p", type=int, default=0, metavar='<parent>', \
-                    dest='parentid', help="provide parent id to locate with")
+                    dest='parent', help="provide parent id to locate with")
 
 PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
                     dest='verbose', help="Increase verbosity")
@@ -98,18 +98,26 @@ def run_sumo_cmdlet(src):
     This will collect the information on object for sumologic and then collect that into a list.
     the output of the action will provide a tuple of the orgid, objecttype, and id
     """
-    target_object = "collector"
     target_dict = dict()
     target_dict["orgid"] = SUMO_ORG
+    target_object = "source"
     target_dict[target_object] = dict()
+
+######
 
     src_cols = src.get_collectors()
     for src_col in src_cols:
-        if ( src_col['id'] == str(ARGS.myself) or ARGS.myself == 0):
-           target_dict[target_object][src_col['id']] = dict()
-           target_dict[target_object][src_col['id']].update( { 'name' : src_col['name'] } )
-           target_dict[target_object][src_col['id']].update( { 'parent' : SUMO_ORG } )
-           target_dict[target_object][src_col['id']].update( { 'id' : src_col['id'] } )
+        if ( str(src_col['id']) == str(ARGS.parent) or ARGS.parent == 0):
+            colid = str(src_col['id'])
+            colname = str(src_col['name'])
+            src_srcs = src.get_sources(colid)
+            if len(src_srcs) == 0: continue
+            for src_src in src_srcs:
+                if ( str(src_src['id']) == str(ARGS.myself) or ARGS.myself == 0):
+                    target_dict[target_object][src_src['id']] = dict()
+                    target_dict[target_object][src_src['id']].update( { 'name' : src_src['name'] } )
+                    target_dict[target_object][src_src['id']].update( { 'parent' : src_col['id'] } )
+                    target_dict[target_object][src_src['id']].update( { 'id' : src_src['id'] } )
 
     if ARGS.oformat == "sum":
         print('Orgid: {} {} number: {}'.format(SUMO_ORG, \
@@ -176,17 +184,32 @@ class SumoApiClient():
 
     def get_collectors(self):
         """
-        Using an HTTP client, this uses a GET to retrieve the collector information.
+        Using an HTTP client, this uses a GET to retrieve all collectors information.
         """
         url = self.base_url + "/v1/collectors"
         return self.__http_get(url)['collectors']
 
     def get_collector(self, myself):
         """
-        Using an HTTP client, this uses a GET to retrieve the collector information.
+        Using an HTTP client, this uses a GET to retrieve single collector information.
         """
         url = self.base_url + "/v1/collectors/" + str(myself)
         return self.__http_get(url)['collector']
+
+    def get_sources(self, collectorid):
+        """
+        Using an HTTP client, this uses a GET to retrieve all sources for a given collector
+        """
+        url = self.base_url + "/v1/collectors/" + str(collectorid) + '/sources'
+        return self.__http_get(url)['sources']
+
+    def get_source(self, collectorid, sourceid):
+        """
+        Using an HTTP client, this uses a GET to retrieve a given source for a given collector
+        """
+        url = self.base_url + "/v1/collectors/" + str(collectorid) + '/sources/' + str(sourceid)
+        return self.__http_get(url)['sources']
+
 
 ### included code
 
