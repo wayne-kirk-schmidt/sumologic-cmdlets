@@ -185,7 +185,7 @@ class SumoApiClient():
 
     def get_fer(self, myself):
         """
-        Using an HTTP client, this uses a GET to retrieve all fer information.
+        Using an HTTP client, this uses a GET to retrieve single fer information.
         """
         url = self.base_url + "/v1/extractionRules/" + str(myself)
         return self.__http_get(url)['data']

@@ -200,7 +200,7 @@ class SumoApiClient():
 
     def get_sources(self, collectorid):
         """
-        Using an HTTP client, this uses a GET to retrieve all sources for a given collector
+        Using an HTTP client, this uses a GET to retrieve for all sources for a given collector
         """
         url = self.base_url + "/v1/collectors/" + str(collectorid) + '/sources'
         return self.__http_get(url)['sources']
