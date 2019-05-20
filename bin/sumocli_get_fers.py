@@ -111,6 +111,7 @@ def run_sumo_cmdlet(src):
            target_dict[target_object][src_fer['id']].update( { 'name' : src_fer['name'] } )
            target_dict[target_object][src_fer['id']].update( { 'parent' : SUMO_ORG } )
            target_dict[target_object][src_fer['id']].update( { 'id' : src_fer['id'] } )
+           target_dict[target_object][src_fer['id']].update( { 'dump' : src_fer } )
 
     if ARGS.oformat == "sum":
         print('Orgid: {} {} number: {}'.format(SUMO_ORG, \

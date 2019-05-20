@@ -110,6 +110,7 @@ def run_sumo_cmdlet(src):
            target_dict[target_object][src_col['id']].update( { 'name' : src_col['name'] } )
            target_dict[target_object][src_col['id']].update( { 'parent' : SUMO_ORG } )
            target_dict[target_object][src_col['id']].update( { 'id' : src_col['id'] } )
+           target_dict[target_object][src_col['id']].update( { 'dump' : src_col } )
 
     if ARGS.oformat == "sum":
         print('Orgid: {} {} number: {}'.format(SUMO_ORG, \
