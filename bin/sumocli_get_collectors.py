@@ -51,7 +51,7 @@ PARSER.add_argument("-f", metavar='<fmt>', default="list", dest='oformat', \
                     help="Specify output format (default = list )")
 
 PARSER.add_argument("-m", type=int, default=0, metavar='<myself>', \
-                    dest='myid', help="provide specific id to lookup")
+                    dest='myself', help="provide specific id to lookup")
 
 PARSER.add_argument("-p", type=int, default=0, metavar='<parent>', \
                     dest='parentid', help="provide parent id to locate with")
@@ -103,14 +103,10 @@ def run_sumo_cmdlet(src):
     target_dict["orgid"] = SUMO_ORG
     target_dict[target_object] = dict()
 
-    if ARGS.myid > 0:
-        src_col = src.get_collector(ARGS.myid)
-        target_dict[target_object][src_col['id']] = src_col['name']
-
-    if ARGS.myid == 0:
-        src_cols = src.get_collectors()
-        for src_col in src_cols:
-            target_dict[target_object][src_col['id']] = src_col['name']
+    src_cols = src.get_collectors()
+    for src_col in src_cols:
+        if ( src_col['id'] == str(ARGS.myself) or ARGS.myself == 0):
+           target_dict[target_object][src_col['id']] = src_col['name']
 
     if ARGS.oformat == "sum":
         print('Orgid: {} {} number: {}'.format(SUMO_ORG, \
@@ -182,11 +178,11 @@ class SumoApiClient():
         url = self.base_url + "/v1/collectors"
         return self.__http_get(url)['collectors']
 
-    def get_collector(self, myid):
+    def get_collector(self, myself):
         """
         Using an HTTP client, this uses a GET to retrieve the collector information.
         """
-        url = self.base_url + "/v1/collectors/" + str(myid)
+        url = self.base_url + "/v1/collectors/" + str(myself)
         return self.__http_get(url)['collector']
 
 ### included code
