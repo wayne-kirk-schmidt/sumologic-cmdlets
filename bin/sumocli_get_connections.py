@@ -106,12 +106,12 @@ def run_sumo_cmdlet(src):
     src_items = src.get_connections()
 
     for src_item in src_items:
-        if ( src_item['id'] == str(ARGS.myself) or ARGS.myself == 0):
-           target_dict[target_object][src_item['id']] = dict()
-           target_dict[target_object][src_item['id']].update( { 'parent' : SUMO_ORG } )
-           target_dict[target_object][src_item['id']].update( { 'id' : src_item['id'] } )
-           target_dict[target_object][src_item['id']].update( { 'name' : src_item['name'] } )
-           target_dict[target_object][src_item['id']].update( { 'dump' : src_item } )
+        if (src_item['id'] == str(ARGS.myself) or ARGS.myself == 0):
+            target_dict[target_object][src_item['id']] = dict()
+            target_dict[target_object][src_item['id']].update({'parent' : SUMO_ORG})
+            target_dict[target_object][src_item['id']].update({'id' : src_item['id']})
+            target_dict[target_object][src_item['id']].update({'name' : src_item['name']})
+            target_dict[target_object][src_item['id']].update({'dump' : src_item})
 
     if ARGS.oformat == "sum":
         print('Orgid: {} {} number: {}'.format(SUMO_ORG, \

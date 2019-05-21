@@ -107,18 +107,20 @@ def run_sumo_cmdlet(src):
 
     src_items = src.get_collectors()
     for src_item in src_items:
-        if ( str(src_item['id']) == str(ARGS.parent) or ARGS.parent == 0):
+        if (str(src_item['id']) == str(ARGS.parent) or ARGS.parent == 0):
             colid = str(src_item['id'])
-            colname = str(src_item['name'])
             src_subitems = src.get_sources(colid)
-            if len(src_subitems) == 0: continue
             for src_subitem in src_subitems:
-                if ( str(src_subitem['id']) == str(ARGS.myself) or ARGS.myself == 0):
+                if (str(src_subitem['id']) == str(ARGS.myself) or ARGS.myself == 0):
                     target_dict[target_object][src_subitem['id']] = dict()
-                    target_dict[target_object][src_subitem['id']].update( { 'parent' : src_item['id'] } )
-                    target_dict[target_object][src_subitem['id']].update( { 'id' : src_subitem['id'] } )
-                    target_dict[target_object][src_subitem['id']].update( { 'name' : src_subitem['name'] } )
-                    target_dict[target_object][src_subitem['id']].update( { 'dump' : src_subitem } )
+                    target_dict[target_object][src_subitem['id']].update( \
+                        {'parent' : src_item['id']})
+                    target_dict[target_object][src_subitem['id']].update( \
+                        {'id' : src_subitem['id']})
+                    target_dict[target_object][src_subitem['id']].update( \
+                        {'name' : src_subitem['name']})
+                    target_dict[target_object][src_subitem['id']].update( \
+                        {'dump' : src_subitem})
 
 
     if ARGS.oformat == "sum":
