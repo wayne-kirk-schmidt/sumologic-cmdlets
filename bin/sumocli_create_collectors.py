@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: get_collectors a cmdlet within the sumocli that retrieves information
+Exaplanation: create_collectors a cmdlet within the sumocli that creates an object
 
 Usage:
-   $ python  get_collectors [ options ]
+   $ python  create_collectors [ options ]
 
 Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumocli_get_collectors
+    @name           sumocli_create_collectors
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
@@ -34,7 +34,7 @@ sys.dont_write_bytecode = 1
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
 
-get_collectors is part of sumocli, a tool which wraps the Sumologic API.
+create_collectors is part of sumocli, a tool which wraps the Sumologic API.
 It meshes with DevOps practices and allows teams to query, audit, backup, 
 and manage sumologic deployments in an agile and modular way.
 
@@ -188,6 +188,14 @@ class SumoApiClient():
         """
         url = self.base_url + "/v1/collectors/" + str(myself)
         return self.__http_get(url)['collector']
+
+    def create_collector(self, ctype, cname, cdsc, ccat):
+        """
+        Using an HTTP client, this uses a POST to create the collector
+        """
+        url = self.base_url + "/v1/collectors"
+        data = {'collector':{'collectorType': ctype, 'name': cname, 'description': cdsc, 'category': ccat,}}
+        return self.__http_post(url, data)
 
 ### included code
 

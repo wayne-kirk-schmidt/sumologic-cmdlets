@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: get_partitions a cmdlet within the sumocli that retrieves fer information
+Exaplanation: get_partitions a cmdlet within the sumocli that retrieves information
 
 Usage:
    $ python  get_partitions [ options ]

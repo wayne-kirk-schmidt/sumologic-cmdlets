@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: get_sources a cmdlet within the sumocli that retrieves sources information
+Exaplanation: get_sources a cmdlet within the sumocli that retrieves information
 
 Usage:
    $ python  get_sources [ options ]

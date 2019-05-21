@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: get_monitors a cmdlet within the sumocli that retrieves fer information
+Exaplanation: get_monitors a cmdlet within the sumocli that retrieves information
 
 Usage:
    $ python  get_monitors [ options ]

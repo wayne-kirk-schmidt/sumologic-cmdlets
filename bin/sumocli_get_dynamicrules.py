@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: get_collectors a cmdlet within the sumocli that retrieves information
+Exaplanation: get_dynamicrules a cmdlet within the sumocli that retrieves information
 
 Usage:
-   $ python  get_collectors [ options ]
+   $ python  get_dynamicrules [ options ]
 
 Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumocli_get_collectors
+    @name           sumocli_get_dynamicrules
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
@@ -34,7 +34,7 @@ sys.dont_write_bytecode = 1
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
 
-get_collectors is part of sumocli, a tool which wraps the Sumologic API.
+get_dynamicrules is part of sumocli, a tool which wraps the Sumologic API.
 It meshes with DevOps practices and allows teams to query, audit, backup, 
 and manage sumologic deployments in an agile and modular way.
 
@@ -98,12 +98,13 @@ def run_sumo_cmdlet(src):
     This will collect the information on object for sumologic and then collect that into a list.
     the output of the action will provide a tuple of the orgid, objecttype, and id
     """
-    target_object = "collector"
+    target_object = "partition"
     target_dict = dict()
     target_dict["orgid"] = SUMO_ORG
     target_dict[target_object] = dict()
 
-    src_items = src.get_collectors()
+    src_items = src.get_dynamicrules()
+
     for src_item in src_items:
         if (src_item['id'] == str(ARGS.myself) or ARGS.myself == 0):
             target_dict[target_object][src_item['id']] = dict()
@@ -175,19 +176,19 @@ class SumoApiClient():
 
 ### included code
 
-    def get_collectors(self):
+    def get_dynamicrules(self):
         """
-        Using an HTTP client, this uses a GET to retrieve all collector information.
+        Using an HTTP client, this uses a GET to retrieve all partitiopartition information.
         """
-        url = self.base_url + "/v1/collectors"
-        return self.__http_get(url)['collectors']
+        url = self.base_url + "/v1/dynamicParsingRules"
+        return self.__http_get(url)['data']
 
-    def get_collector(self, myself):
+    def get_dynamicrule(self, myself):
         """
-        Using an HTTP client, this uses a GET to retrieve single collector information.
+        Using an HTTP client, this uses a GET to retrieve single partition information.
         """
-        url = self.base_url + "/v1/collectors/" + str(myself)
-        return self.__http_get(url)['collector']
+        url = self.base_url + "/v1/dynamicParsingRules/" + str(myself)
+        return self.__http_get(url)['data']
 
 ### included code
 
