@@ -50,7 +50,7 @@ PARSER.add_argument("-c", metavar='<cfg>', dest='MY_CFG', help="Set Sumo configf
 PARSER.add_argument("-f", metavar='<fmt>', default="list", dest='oformat', \
                     help="Specify output format (default = list )")
 
-PARSER.add_argument("-m", type=int, default=0, metavar='<myself>', \
+PARSER.add_argument("-m", default=0, metavar='<myself>', \
                     dest='myself', help="provide specific id to lookup")
 
 PARSER.add_argument("-p", type=int, default=0, metavar='<parent>', \
@@ -106,7 +106,7 @@ def run_sumo_cmdlet(src):
     src_items = src.get_users()
 
     for src_item in src_items:
-        if (src_item['id'] == str(ARGS.myself) or ARGS.myself == 0):
+        if (str(src_item['id']) == str(ARGS.myself) or ARGS.myself == 0):
             target_dict[target_object][src_item['id']] = dict()
             target_dict[target_object][src_item['id']].update({'parent' : SUMO_ORG})
             target_dict[target_object][src_item['id']].update({'id' : src_item['id']})

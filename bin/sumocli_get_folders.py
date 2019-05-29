@@ -11,7 +11,7 @@ Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumocli_get_myfolders 
+    @name           sumocli_get_myfolders
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
@@ -50,7 +50,7 @@ PARSER.add_argument("-c", metavar='<cfg>', dest='MY_CFG', help="Set Sumo configf
 PARSER.add_argument("-f", metavar='<fmt>', default="list", dest='oformat', \
                     help="Specify output format (default = list )")
 
-PARSER.add_argument("-m", type=int, default=0, metavar='<myself>', \
+PARSER.add_argument("-m", default=0, metavar='<myself>', \
                     dest='myself', help="provide specific id to lookup")
 
 PARSER.add_argument("-p", type=int, default=0, metavar='<parent>', \
@@ -103,7 +103,7 @@ def run_sumo_cmdlet(src):
     target_dict["orgid"] = SUMO_ORG
     target_dict[target_object] = dict()
 
-    src_items = src.get_myfolders ()
+    src_items = src.get_myfolders()
     target_dict[target_object]['id'] = dict()
     target_dict[target_object]['id'].update({'parent' : SUMO_ORG})
     target_dict[target_object]['id'].update({'dump' : src_items})
@@ -161,7 +161,7 @@ class SumoApiClient():
 
 ### included code
 
-    def get_myfolders (self):
+    def get_myfolders(self):
         """
         Using an HTTP client, this uses a GET to retrieve all connection information.
         """
