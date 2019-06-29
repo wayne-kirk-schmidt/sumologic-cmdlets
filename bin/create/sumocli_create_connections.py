@@ -17,6 +17,7 @@ Style:
     @author-email   wschmidt@sumologic.com
     @license-name   GNU GPL
     @license-url    http://www.gnu.org/licenses/gpl.html
+
 """
 
 __version__ = 1.00
