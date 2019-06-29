@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: create_collectors a cmdlet within the sumocli that builds an object
+Exaplanation: get_partitions a cmdlet within the sumocli that retrieves information
 
 Usage:
-   $ python  create_collectors [ options ]
+   $ python  get_partitions [ options ]
 
 Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumocli_create_collectors
+    @name           sumocli_get_partitions
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
@@ -34,7 +34,7 @@ sys.dont_write_bytecode = 1
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
 
-create_collectors is part of sumocli, a tool which wraps the Sumologic API.
+get_partitions is part of sumocli, a tool which wraps the Sumologic API.
 It meshes with DevOps practices and allows teams to query, audit, backup, 
 and manage sumologic deployments in an agile and modular way.
 
@@ -49,6 +49,12 @@ PARSER.add_argument("-c", metavar='<cfg>', dest='MY_CFG', help="Set Sumo configf
 
 PARSER.add_argument("-f", metavar='<fmt>', default="list", dest='oformat', \
                     help="Specify output format (default = list )")
+
+PARSER.add_argument("-m", default=0, metavar='<myself>', \
+                    dest='myself', help="provide specific id to lookup")
+
+PARSER.add_argument("-p", type=int, default=0, metavar='<parent>', \
+                    dest='parentid', help="provide parent id to locate with")
 
 PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
                     dest='verbose', help="Increase verbosity")
@@ -89,17 +95,34 @@ def main():
 
 def run_sumo_cmdlet(src):
     """
-    This will create the object. The goal is make the script single object and purpose
-    If there are dependencies for the creation, this will handle them.
+    This will collect the information on object for sumologic and then collect that into a list.
+    the output of the action will provide a tuple of the orgid, objecttype, and id
     """
-    target_object = "collector"
+    target_object = "partition"
+    target_dict = dict()
+    target_dict["orgid"] = SUMO_ORG
     target_dict[target_object] = dict()
 
-    target_collector = src.create_collector()
-    target_collector_id = target_dict[target_object]['id']
-    target_collector_results = src.confirm_collector(target_collector_id)
+    src_items = src.get_partitions()
 
-    print(json.dumps(target_collector_results, indent=4))
+    for src_item in src_items:
+        if (str(src_item['id']) == str(ARGS.myself) or ARGS.myself == 0):
+            target_dict[target_object][src_item['id']] = dict()
+            target_dict[target_object][src_item['id']].update({'parent' : SUMO_ORG})
+            target_dict[target_object][src_item['id']].update({'id' : src_item['id']})
+            target_dict[target_object][src_item['id']].update({'name' : src_item['name']})
+            target_dict[target_object][src_item['id']].update({'dump' : src_item})
+
+    if ARGS.oformat == "sum":
+        print('Orgid: {} {} number: {}'.format(SUMO_ORG, \
+            target_object, len(target_dict[target_object])))
+
+    if ARGS.oformat == "list":
+        for key in sorted(target_dict[target_object].keys()):
+            print('{},{},{}'.format(SUMO_ORG, target_object, key))
+
+    if ARGS.oformat == "json":
+        print(json.dumps(target_dict, indent=4))
 
 class SumoApiClient():
     """
@@ -153,27 +176,19 @@ class SumoApiClient():
 
 ### included code
 
-    """
-    https://help.sumologic.com/APIs/01Collector-Management-API/Collector-API-Methods-and-Examples#POST_methods
-    """
-    def create_collector(self, collectorType, name, description, category):
-        url = self.base_url + "/v1/collectors"
-        data = {
-            'collector': {
-                'collectorType': collectorType,
-                'name': name,
-                'description': description,
-                'category': category,
-            }
-        }
-        return self.__http_post(url, data)
+    def get_partitions(self):
+        """
+        Using an HTTP client, this uses a GET to retrieve all partitiopartition information.
+        """
+        url = self.base_url + "/v1/partitions"
+        return self.__http_get(url)['data']
 
-    def confirm_collector(self, myself):
+    def get_partition(self, myself):
         """
-        Using an HTTP client, this uses a GET to confirm the details of the collector creation
+        Using an HTTP client, this uses a GET to retrieve single partition information.
         """
-        url = self.base_url + "/v1/collectors/" + str(myself)
-        return self.__http_get(url)['collector']
+        url = self.base_url + "/v1/partitions/" + str(myself)
+        return self.__http_get(url)['data']
 
 ### included code
 
