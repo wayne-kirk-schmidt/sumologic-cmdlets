@@ -1,5 +1,5 @@
-SumoLogic Toshokan
-==================
+SumoLogic Cmdlets
+=================
 
 SumoLogic Cmdlets are small scriptlets to get, create, run, list, query, and delete sumologic objects.
 They are designed to be put into Ansible, Chef or other DevOps tools to promote "Sumologic Config as code"
