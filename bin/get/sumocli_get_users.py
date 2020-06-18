@@ -180,14 +180,14 @@ class SumoApiClient():
         """
         Using an HTTP client, this uses a GET to retrieve all user information.
         """
-        url = self.base_url + "/v1beta/users"
+        url = self.base_url + "/v1/users"
         return self.__http_get(url)['data']
 
     def get_user(self, myself):
         """
         Using an HTTP client, this uses a GET to retrieve single user information.
         """
-        url = self.base_url + "/v1beta/users/" + str(myself)
+        url = self.base_url + "/v1/users/" + str(myself)
         return self.__http_get(url)['data']
 
 ### included code

@@ -180,14 +180,14 @@ class SumoApiClient():
         """
         Using an HTTP client, this uses a GET to retrieve all role information.
         """
-        url = self.base_url + "/v1beta/roles"
+        url = self.base_url + "/v1/roles"
         return self.__http_get(url)['data']
 
     def get_role(self, myself):
         """
         Using an HTTP client, this uses a GET to retrieve single role information.
         """
-        url = self.base_url + "/v1beta/roles/" + str(myself)
+        url = self.base_url + "/v1/roles/" + str(myself)
         return self.__http_get(url)['data']
 
 ### included code

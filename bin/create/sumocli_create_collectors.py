@@ -96,6 +96,8 @@ def run_sumo_cmdlet(src):
     target_object = "collector"
     target_dict[target_object] = dict()
 
+    ### def create_collector(self, collectorType, name, description, category):
+
     target_collector = src.create_collector()
     target_collector_id = target_dict[target_object]['id']
     target_collector_results = src.confirm_collector(target_collector_id)
