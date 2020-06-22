@@ -55,7 +55,7 @@ PARSER.add_argument("-r", metavar='<range>', dest='MY_RANGE', default='1h', \
 PARSER.add_argument("-o", metavar='<fmt>', default="list", dest='oformat', \
                     help="set output format ( format: json, csv )")
 PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
-                    dest='verbose', help="Increase verbosity")
+                    dest='VERBOSE', help="Increase verbosity")
 
 ARGS = PARSER.parse_args()
 
@@ -65,7 +65,7 @@ HOUR_M = 60
 DAY_H = 24
 WEEK_D = 7
 
-RECORD_LIMIT = 10000
+LIMIT = 10000
 
 DEFAULT_QUERY = '''
 _index=sumologic_volume
@@ -183,16 +183,18 @@ def run_sumo_cmdlet(src, query, time_params):
 
     query_job = src.search_job(query, time_params)
     query_jobid = query_job["id"]
-    print(query_jobid)
-    time.sleep(1)
 
-    ### query_status = src.search_job_status(query_job)
-    ### print(query_status)
+    (query_status, num_records, iterations) = src.search_job_records_tally(query_jobid)
+    if ARGS.VERBOSE:
+        print('::{}::{}::{}::{}::'.format(query_jobid, query_status, num_records, iterations))
 
-    query_records = src.search_job_records(query_job, RECORD_LIMIT, 0)
-    ### print(query_records)
+    query_records = src.search_job_records(query_jobid, LIMIT, 0)
+    if ARGS.VERBOSE:
+        print(query_records)
 
-    ### print(json.dumps(query_records, sort_keys=True, indent=4))
+    query_messages = src.search_job_messages(query_jobid, LIMIT, 0)
+    if ARGS.VERBOSE:
+        print(query_messages)
 
     fields = query_records["fields"]
     for field in fields:
@@ -210,7 +212,7 @@ def run_sumo_cmdlet(src, query, time_params):
         print("")
         ### print(s[0:-1] + '\n')
 
-    ### query_messages = src.search_job_messages(query_job, RECORD_LIMIT, 0)
+    ### query_messages = src.search_job_messages(query_job, LIMIT, 0)
     ### print(query_messages)
 
 class SumoApiClient():
@@ -298,90 +300,95 @@ class SumoApiClient():
         response = self.post('/v1/search/jobs', data)
         return json.loads(response.text)
 
-    def search_job_status(self, search_job):
+    def search_job_status(self, search_jobid):
         """
         Find out search job status
         """
-        response = self.get('/v1/search/jobs/' + str(search_job['id']))
+        response = self.get('/v1/search/jobs/' + str(search_jobid))
         return json.loads(response.text)
 
-    def search_job_records_sync(self, query, time_params):
+    def search_job_records_tally(self, query_jobid):
         """
         Find out search job records
         """
+        query_output = self.search_job_status(query_jobid)
+        query_status = query_output['state']
+        num_records = query_output['recordCount']
+        time.sleep(1)
+        iterations = 1
+        while query_status == 'GATHERING RESULTS':
+            query_output = self.search_job_status(query_jobid)
+            query_status = query_output['state']
+            num_records = query_output['recordCount']
+            time.sleep(1)
+            iterations += 1
+        return (query_status, num_records, iterations)
 
-        searchjob = self.search_job(query, time_params)
-        status = self.search_job_status(searchjob)
-        numrecords = status['recordCount']
-        while status['state'] != 'DONE GATHERING RESULTS':
-            if status['state'] == 'CANCELLED':
-                break
-            status = self.search_job_status(searchjob)
-            numrecords = status['recordCount']
-        if status['state'] == 'DONE GATHERING RESULTS':
-            jobrecords = []
-            iterations = numrecords // RECORD_LIMIT + 1
+    def calculate_and_fetch_records(self, query_jobid, num_records):
+        """
+        Calculate and return records in chunks based on LIMIT
+        """
+        job_records = []
+        iterations = num_records // LIMIT + 1
+        for iteration in range(1, iterations + 1):
+            records = self.search_job_records(query_jobid, limit=LIMIT,
+                                              offset=((iteration - 1) * LIMIT))
+            for record in records['records']:
+                job_records.append(record)
 
-            for iteration in range(1, iterations + 1):
-                records = self.search_job_records(searchjob, limit=RECORD_LIMIT,
-                                                  offset=((iteration - 1) * RECORD_LIMIT))
-                for record in records['records']:
-                    jobrecords.append(record)
-            sync_result = jobrecords
-        else:
-            sync_result = status
+        return job_records
 
-        return sync_result
-
-    def search_job_messages_sync(self, query, time_params):
+    def search_job_messages_tally(self, query_jobid):
         """
         Find out search job messages
         """
+        query_output = self.search_job_status(query_jobid)
+        query_status = query_output['state']
+        num_messages = query_output['messageCount']
+        time.sleep(1)
+        iterations = 1
+        while query_status == 'GATHERING RESULTS':
+            query_output = self.search_job_status(query_jobid)
+            query_status = query_output['state']
+            num_messages = query_output['messageCount']
+            time.sleep(1)
+            iterations += 1
+        return (query_status, num_messages, iterations)
 
-        searchjob = self.search_job(query, time_params)
-        status = self.search_job_status(searchjob)
-        nummessages = status['messageCount']
-        while status['state'] != 'DONE GATHERING RESULTS':
-            if status['state'] == 'CANCELLED':
-                break
-            status = self.search_job_status(searchjob)
-            nummessages = status['messageCount']
-        if status['state'] == 'DONE GATHERING RESULTS':
-            jobmessages = []
-            iterations = nummessages // RECORD_LIMIT + 1
+    def calculate_and_fetch_messages(self, query_jobid, num_messages):
+        """
+        Calculate and return messages in chunks based on LIMIT
+        """
+        job_messages = []
+        iterations = num_messages // LIMIT + 1
+        for iteration in range(1, iterations + 1):
+            records = self.search_job_records(query_jobid, limit=LIMIT,
+                                              offset=((iteration - 1) * LIMIT))
+            for record in records['records']:
+                job_messages.append(record)
+        return job_messages
 
-            for iteration in range(1, iterations + 1):
-                messages = self.search_job_messages(searchjob, limit=RECORD_LIMIT,
-                                                    offset=((iteration - 1) * RECORD_LIMIT))
-                for message in messages['messages']:
-                    jobmessages.append(message)
-            sync_result = jobmessages
-        else:
-            sync_result = status
-
-        return sync_result
-
-    def search_job_messages(self, search_job, limit=None, offset=0):
+    def search_job_messages(self, query_jobid, limit=None, offset=0):
         """
         Query the job messages of a search job
         """
         params = {'limit': limit, 'offset': offset}
-        response = self.get('/v1/search/jobs/' + str(search_job['id']) + '/messages', params)
+        response = self.get('/v1/search/jobs/' + str(query_jobid) + '/messages', params)
         return json.loads(response.text)
 
-    def search_job_records(self, search_job, limit=None, offset=0):
+    def search_job_records(self, query_jobid, limit=None, offset=0):
         """
         Query the job records of a search job
         """
         params = {'limit': limit, 'offset': offset}
-        response = self.get('/v1/search/jobs/' + str(search_job['id']) + '/records', params)
+        response = self.get('/v1/search/jobs/' + str(query_jobid) + '/records', params)
         return json.loads(response.text)
 
-    def delete_search_job(self, search_job):
+    def delete_search_job(self, query_jobid):
         """
         Delete an unused search job
         """
-        return self.delete('/v1/search/jobs/' + str(search_job['id']))
+        return self.delete('/v1/search/jobs/' + str(query_jobid))
 
 ### included code
 
