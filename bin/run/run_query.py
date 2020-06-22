@@ -40,14 +40,10 @@ run_query is a cmdlet managing queries.
 
 """)
 
-PARSER.add_argument("-c", metavar='<cfg>', dest='MY_CFG', \
-                    help="set Sumo run config")
 PARSER.add_argument("-a", metavar='<api>', dest='MY_API', \
                     help="set Sumo api ( format: <key>:<secret> ) ")
 PARSER.add_argument("-k", metavar='<key>', dest='MY_KEY', \
                     help="set Sumo key ( format: <site>:<orgid> ) ")
-PARSER.add_argument("-j", metavar='<job>', dest='MY_JOB', \
-                    help="set Sumo job config")
 PARSER.add_argument("-q", metavar='<query>', dest='MY_QUERY', \
                     help="set Sumo job query")
 PARSER.add_argument("-r", metavar='<range>', dest='MY_RANGE', default='1h', \
@@ -86,23 +82,20 @@ TIME_TABLE["w"] = TIME_TABLE["d"] * WEEK_D
 TIME_PARAMS = dict()
 
 if ARGS.MY_API:
-    os.environ["SUMO_API"] = ARGS.MY_API
-    (MY_APINAME, MY_APISECRET) = os.environ["MY_API"].split(':')
-    os.environ["SUMO_UID"] = MY_APINAME
-    os.environ["SUMO_KEY"] = MY_APISECRET
+    (MY_APINAME, MY_APISECRET) = ARGS.MY_API.split(':')
+    os.environ['SUMO_UID'] = MY_APINAME
+    os.environ['SUMO_KEY'] = MY_APISECRET
 
 if ARGS.MY_KEY:
-    os.environ["SUMO_KEY"] = ARGS.MY_KEY
-    (MY_DEPLOYMENT, MY_ORGID) = os.environ["MY_KEY"].split('_')
-    os.environ["SUMO_LOC"] = MY_DEPLOYMENT
-    os.environ["SUMO_ORG"] = MY_ORGID
+    (MY_DEPLOYMENT, MY_ORGID) = ARGS.MY_KEY.split('_')
+    os.environ['SUMO_LOC'] = MY_DEPLOYMENT
+    os.environ['SUMO_ORG'] = MY_ORGID
 
 try:
     SUMO_UID = os.environ['SUMO_UID']
     SUMO_KEY = os.environ['SUMO_KEY']
     SUMO_LOC = os.environ['SUMO_LOC']
     SUMO_ORG = os.environ['SUMO_ORG']
-
 except KeyError as myerror:
     print('Environment Variable Not Set :: {} '.format(myerror.args[0]))
 
@@ -196,6 +189,12 @@ def run_sumo_cmdlet(src, query, time_params):
     if ARGS.VERBOSE:
         print(query_messages)
 
+    process_records_output(query_records)
+
+def process_records_output(query_records):
+    """
+    This handles output and formats the results into json, csv, or other formats
+    """
     fields = query_records["fields"]
     for field in fields:
         fieldname = field["name"]
@@ -210,10 +209,6 @@ def run_sumo_cmdlet(src, query, time_params):
             linestring += str(record["map"][fieldname]) + ','
             sys.stdout.write('{:40s}\t'.format(str(record["map"][fieldname])))
         print("")
-        ### print(s[0:-1] + '\n')
-
-    ### query_messages = src.search_job_messages(query_job, LIMIT, 0)
-    ### print(query_messages)
 
 class SumoApiClient():
     """
