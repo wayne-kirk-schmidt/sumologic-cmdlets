@@ -48,7 +48,7 @@ PARSER.add_argument("-q", metavar='<query>', dest='MY_QUERY', \
                     help="set Sumo job query")
 PARSER.add_argument("-r", metavar='<range>', dest='MY_RANGE', default='1h', \
                     help="set Sumo job range")
-PARSER.add_argument("-o", metavar='<fmt>', default="list", dest='oformat', \
+PARSER.add_argument("-o", metavar='<fmt>', default="list", dest='OUT_FORMAT', \
                     help="set output format ( format: json, csv )")
 PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
                     dest='VERBOSE', help="Increase verbosity")
@@ -171,7 +171,7 @@ def collect_contents(query_item):
 
 def run_sumo_cmdlet(src, query, time_params):
     """
-    This runs the Sumo Command, and then saves the ooutput and the status
+    This runs the Sumo Command, and then saves the output and the status
     """
 
     query_job = src.search_job(query, time_params)
@@ -195,20 +195,43 @@ def process_records_output(query_records):
     """
     This handles output and formats the results into json, csv, or other formats
     """
+    csv_separator = ','
+    tab_separator = '\t'
+    eol_separator = '\n'
+
+    header_list = list()
+
     fields = query_records["fields"]
     for field in fields:
         fieldname = field["name"]
-        sys.stdout.write('{:40s}\t'.format(str(fieldname)))
-    print("")
+        if ARGS.OUT_FORMAT == 'list':
+            fieldname = '{:40s}'.format(str(fieldname))
+        header_list.append(fieldname)
 
-    for record in query_records["records"]:
-        linestring = ''
+    records = query_records["records"]
+    record_body_list = list()
+
+    for record in records:
+        record_line_list = list()
         for field in fields:
             fieldname = field["name"]
-            ### value = str(record["map"][fieldname])
-            linestring += str(record["map"][fieldname]) + ','
-            sys.stdout.write('{:40s}\t'.format(str(record["map"][fieldname])))
-        print("")
+            recordname = str(record["map"][fieldname])
+            if ARGS.OUT_FORMAT == 'list':
+                recordname = '{:40s}'.format(str(record["map"][fieldname]))
+            record_line_list.append(recordname)
+        if ARGS.OUT_FORMAT == 'csv':
+            record_line = csv_separator.join(record_line_list)
+        if ARGS.OUT_FORMAT == 'list':
+            record_line = tab_separator.join(record_line_list)
+        record_body_list.append(record_line)
+
+    if ARGS.OUT_FORMAT == 'csv':
+        print(csv_separator.join(header_list))
+        print(eol_separator.join(record_body_list))
+
+    if ARGS.OUT_FORMAT == 'list':
+        print(tab_separator.join(header_list))
+        print(eol_separator.join(record_body_list))
 
 class SumoApiClient():
     """
