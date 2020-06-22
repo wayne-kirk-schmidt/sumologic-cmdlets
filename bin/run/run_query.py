@@ -48,8 +48,8 @@ PARSER.add_argument("-q", metavar='<query>', dest='MY_QUERY', \
                     help="set Sumo job query")
 PARSER.add_argument("-r", metavar='<range>', dest='MY_RANGE', default='1h', \
                     help="set Sumo job range")
-PARSER.add_argument("-o", metavar='<fmt>', default="list", dest='OUT_FORMAT', \
-                    help="set output format ( format: json, csv )")
+PARSER.add_argument("-o", metavar='<fmt>', default="txt", dest='OUT_FORMAT', \
+                    help="set output format ( format: txt, csv )")
 PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
                     dest='VERBOSE', help="Increase verbosity")
 
@@ -204,7 +204,7 @@ def process_records_output(query_records):
     fields = query_records["fields"]
     for field in fields:
         fieldname = field["name"]
-        if ARGS.OUT_FORMAT == 'list':
+        if ARGS.OUT_FORMAT == 'txt':
             fieldname = '{:40s}'.format(str(fieldname))
         header_list.append(fieldname)
 
@@ -216,12 +216,12 @@ def process_records_output(query_records):
         for field in fields:
             fieldname = field["name"]
             recordname = str(record["map"][fieldname])
-            if ARGS.OUT_FORMAT == 'list':
+            if ARGS.OUT_FORMAT == 'txt':
                 recordname = '{:40s}'.format(str(record["map"][fieldname]))
             record_line_list.append(recordname)
         if ARGS.OUT_FORMAT == 'csv':
             record_line = csv_separator.join(record_line_list)
-        if ARGS.OUT_FORMAT == 'list':
+        if ARGS.OUT_FORMAT == 'txt':
             record_line = tab_separator.join(record_line_list)
         record_body_list.append(record_line)
 
@@ -229,7 +229,7 @@ def process_records_output(query_records):
         print(csv_separator.join(header_list))
         print(eol_separator.join(record_body_list))
 
-    if ARGS.OUT_FORMAT == 'list':
+    if ARGS.OUT_FORMAT == 'txt':
         print(tab_separator.join(header_list))
         print(eol_separator.join(record_body_list))
 
