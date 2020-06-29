@@ -26,10 +26,12 @@ import json
 import pprint
 import os
 import sys
-import time
 import argparse
 import http
 import re
+import threading
+import logging
+import time
 import requests
 sys.dont_write_bytecode = 1
 
@@ -40,15 +42,17 @@ run_query is a cmdlet managing queries.
 
 """)
 
-PARSER.add_argument("-a", metavar='<api>', dest='MY_API', \
+PARSER.add_argument("-a", metavar='<secret>', dest='MY_SECRET', \
                     help="set Sumo api ( format: <key>:<secret> ) ")
-PARSER.add_argument("-k", metavar='<key>', dest='MY_KEY', \
+PARSER.add_argument("-k", metavar='<client>', dest='MY_CLIENT', \
                     help="set Sumo key ( format: <site>:<orgid> ) ")
+PARSER.add_argument("-e", metavar='<endpoint>', default='us2', dest='MY_ENDPOINT', \
+                    help="set Sumo endpoint ( format: <endpoint> ) ")
 PARSER.add_argument("-q", metavar='<query>', dest='MY_QUERY', \
                     help="set Sumo job query")
 PARSER.add_argument("-r", metavar='<range>', dest='MY_RANGE', default='1h', \
                     help="set Sumo job range")
-PARSER.add_argument("-o", metavar='<fmt>', default="txt", dest='OUT_FORMAT', \
+PARSER.add_argument("-o", metavar='<fmt>', default="csv", dest='OUT_FORMAT', \
                     help="set output format ( format: txt, csv )")
 PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
                     dest='VERBOSE', help="Increase verbosity")
@@ -62,13 +66,14 @@ DAY_H = 24
 WEEK_D = 7
 
 LIMIT = 10000
+LONGQUERY_LIMIT = 100
 
 DEFAULT_QUERY = '''
 _index=sumologic_volume
 | count by _sourceCategory
 '''
 
-QUERY_EXT = '.qry'
+QUERY_EXT = '.sqy'
 
 NOW_TIME = int(time.time()) * SEC_M
 
@@ -81,21 +86,27 @@ TIME_TABLE["w"] = TIME_TABLE["d"] * WEEK_D
 
 TIME_PARAMS = dict()
 
-if ARGS.MY_API:
-    (MY_APINAME, MY_APISECRET) = ARGS.MY_API.split(':')
+if ARGS.MY_SECRET:
+    (MY_APINAME, MY_APISECRET) = ARGS.MY_SECRET.split(':')
     os.environ['SUMO_UID'] = MY_APINAME
     os.environ['SUMO_KEY'] = MY_APISECRET
 
-if ARGS.MY_KEY:
-    (MY_DEPLOYMENT, MY_ORGID) = ARGS.MY_KEY.split('_')
+if ARGS.MY_CLIENT:
+    (MY_DEPLOYMENT, MY_ORGID) = ARGS.MY_CLIENT.split('_')
     os.environ['SUMO_LOC'] = MY_DEPLOYMENT
     os.environ['SUMO_ORG'] = MY_ORGID
+
+if ARGS.MY_ENDPOINT:
+    os.environ['SUMO_END'] = ARGS.MY_ENDPOINT
+else:
+    os.environ['SUMO_END'] = os.environ['SUMO_LOC']
 
 try:
     SUMO_UID = os.environ['SUMO_UID']
     SUMO_KEY = os.environ['SUMO_KEY']
     SUMO_LOC = os.environ['SUMO_LOC']
     SUMO_ORG = os.environ['SUMO_ORG']
+    SUMO_END = os.environ['SUMO_END']
 except KeyError as myerror:
     print('Environment Variable Not Set :: {} '.format(myerror.args[0]))
 
@@ -107,13 +118,28 @@ def main():
     Once done, then issue the command required
     """
 
-    src = SumoApiClient(SUMO_UID, SUMO_KEY, SUMO_LOC)
+    src = SumoApiClient(SUMO_UID, SUMO_KEY, SUMO_END)
 
     time_params = calculate_range()
 
     query_list = collect_queries()
     for query_item in query_list:
+        query_item = collect_contents(query_item)
+        query_item = tailor_queries(query_item)
         run_sumo_cmdlet(src, collect_contents(query_item), time_params)
+
+def tailor_queries(query_item):
+    """
+    This substitutes common parameters for values from the script.
+    Later, this will be a data driven exercise.
+    """
+    replacements = dict()
+    replacements['{{deployment}}'] = os.environ['SUMO_LOC']
+    replacements['{{org_id}}'] = os.environ['SUMO_ORG']
+    replacements['{{longquery_limit_stmt}}'] = str(LONGQUERY_LIMIT)
+    for sub_key, sub_value in replacements.items():
+        query_item = query_item.replace(sub_key, sub_value)
+    return query_item
 
 def calculate_range():
     """
