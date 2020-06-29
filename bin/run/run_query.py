@@ -124,9 +124,9 @@ def main():
 
     query_list = collect_queries()
     for query_item in query_list:
-        query_item = collect_contents(query_item)
-        query_item = tailor_queries(query_item)
-        run_sumo_cmdlet(src, collect_contents(query_item), time_params)
+        query_data = collect_contents(query_item)
+        query_data = tailor_queries(query_data)
+        run_sumo_cmdlet(src, query_data, time_params)
 
 def tailor_queries(query_item):
     """
