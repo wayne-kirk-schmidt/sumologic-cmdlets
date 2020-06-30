@@ -12,14 +12,14 @@ Style:
    http://google.github.io/styleguide/pyguide.html
 
     @name           sumocli_sumo_query
-    @version        0.80
+    @version        0.90
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
     @license-name   GNU GPL
     @license-url    http://www.gnu.org/licenses/gpl.html
 """
 
-__version__ = 0.80
+__version__ = 0.90
 __author__ = "Wayne Schmidt (wschmidt@sumologic.com)"
 
 import json
@@ -29,8 +29,6 @@ import sys
 import argparse
 import http
 import re
-import threading
-import logging
 import time
 import requests
 sys.dont_write_bytecode = 1
@@ -43,19 +41,18 @@ sumo_query is a cmdlet managing queries.
 """)
 
 PARSER.add_argument("-a", metavar='<secret>', dest='MY_SECRET', \
-                    help="set Sumo api ( format: <key>:<secret> ) ")
+                    help="set api (format: <key>:<secret>) ")
 PARSER.add_argument("-k", metavar='<client>', dest='MY_CLIENT', \
-                    help="set Sumo key ( format: <site>:<orgid> ) ")
+                    help="set key (format: <site>_<orgid>) ")
 PARSER.add_argument("-e", metavar='<endpoint>', default='us2', dest='MY_ENDPOINT', \
-                    help="set Sumo endpoint ( format: <endpoint> ) ")
-PARSER.add_argument("-q", metavar='<query>', dest='MY_QUERY', \
-                    help="set Sumo job query")
+                    help="set endpoint (format: <endpoint>) ")
+PARSER.add_argument("-q", metavar='<query>', dest='MY_QUERY', help="set query_content")
 PARSER.add_argument("-r", metavar='<range>', dest='MY_RANGE', default='1h', \
-                    help="set Sumo job range")
+                    help="set query_range")
 PARSER.add_argument("-o", metavar='<fmt>', default="csv", dest='OUT_FORMAT', \
-                    help="set output format ( format: txt, csv )")
+                    help="set query_output (values: txt, csv)")
 PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
-                    dest='VERBOSE', help="Increase verbosity")
+                    dest='VERBOSE', help="increase verbosity")
 
 ARGS = PARSER.parse_args()
 
@@ -79,6 +76,10 @@ CSV_SEP = ','
 TAB_SEP = '\t'
 EOL_SEP = '\n'
 
+MY_SEP = CSV_SEP
+if ARGS.OUT_FORMAT == 'txt':
+    MS_SEP = TAB_SEP
+
 NOW_TIME = int(time.time()) * SEC_M
 
 TIME_TABLE = dict()
@@ -99,6 +100,7 @@ if ARGS.MY_CLIENT:
     (MY_DEPLOYMENT, MY_ORGID) = ARGS.MY_CLIENT.split('_')
     os.environ['SUMO_LOC'] = MY_DEPLOYMENT
     os.environ['SUMO_ORG'] = MY_ORGID
+    os.environ['SUMO_TAG'] = ARGS.MY_CLIENT
 
 if ARGS.MY_ENDPOINT:
     os.environ['SUMO_END'] = ARGS.MY_ENDPOINT
@@ -126,12 +128,37 @@ def main():
 
     time_params = calculate_range()
 
+    counter = 1
+
     query_list = collect_queries()
     for query_item in query_list:
         query_data = collect_contents(query_item)
         query_data = tailor_queries(query_data)
         header_output = run_sumo_query(src, query_data, time_params)
-        print(header_output)
+        write_query_output(header_output, counter)
+        counter += 1
+
+def write_query_output(header_output, query_number):
+    """
+    This is a wrapper for writing out the contents of a file
+    """
+
+    ext_sep = '.'
+
+    querytag = ARGS.MY_CLIENT
+    extension = ARGS.OUT_FORMAT
+    number = '{:03d}'.format(query_number)
+
+    output_dir = '/tmp'
+    output_file = ext_sep.join((querytag, str(number), extension))
+    output_target = os.path.join(output_dir, output_file)
+
+    if ARGS.VERBOSE:
+        print(output_target)
+
+    file_object = open(output_target, "w")
+    file_object.write(header_output)
+    file_object.close()
 
 def tailor_queries(query_item):
     """
@@ -225,10 +252,6 @@ def run_sumo_query(src, query, time_params):
 
     header_list = list()
     record_body_list = list()
-
-    MY_SEP = CSV_SEP
-    if ARGS.OUT_FORMAT == 'txt':
-       MY_SEP = TAB_SEP
 
     fields = query_records["fields"]
     for field in fields:
