@@ -153,7 +153,7 @@ def write_query_output(header_output, query_number):
     output_file = ext_sep.join((querytag, str(number), extension))
     output_target = os.path.join(output_dir, output_file)
 
-    if ARGS.VERBOSE:
+    if ARGS.VERBOSE > 1:
         print(output_target)
 
     file_object = open(output_target, "w")
@@ -236,18 +236,18 @@ def run_sumo_query(src, query, time_params):
     query_jobid = query_job["id"]
 
     (query_status, num_records, iterations) = src.search_job_records_tally(query_jobid)
-    if ARGS.VERBOSE:
+    if ARGS.VERBOSE > 5:
         print('{}'.format(query_jobid))
         print('{}'.format(query_status))
         print('{}'.format(num_records))
         print('{}'.format(iterations))
 
     query_records = src.search_job_records(query_jobid, LIMIT, 0)
-    if ARGS.VERBOSE:
+    if ARGS.VERBOSE > 7:
         print(query_records)
 
     query_messages = src.search_job_messages(query_jobid, LIMIT, 0)
-    if ARGS.VERBOSE:
+    if ARGS.VERBOSE > 7:
         print(query_messages)
 
     header_list = list()
