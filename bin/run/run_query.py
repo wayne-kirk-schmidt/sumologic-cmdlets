@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: run_query is a Sumo Logic cmdlet that manages a query
+Exaplanation: sumo_query is a Sumo Logic cmdlet that manages a query
 
 Usage:
-   $ python  run_query [ options ]
+   $ python  sumo_query [ options ]
 
 Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumocli_run_query
+    @name           sumocli_sumo_query
     @version        0.80
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
@@ -38,7 +38,7 @@ sys.dont_write_bytecode = 1
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
 
-run_query is a cmdlet managing queries.
+sumo_query is a cmdlet managing queries.
 
 """)
 
@@ -74,6 +74,10 @@ _index=sumologic_volume
 '''
 
 QUERY_EXT = '.sqy'
+
+CSV_SEP = ','
+TAB_SEP = '\t'
+EOL_SEP = '\n'
 
 NOW_TIME = int(time.time()) * SEC_M
 
@@ -126,7 +130,8 @@ def main():
     for query_item in query_list:
         query_data = collect_contents(query_item)
         query_data = tailor_queries(query_data)
-        run_sumo_cmdlet(src, query_data, time_params)
+        header_output = run_sumo_query(src, query_data, time_params)
+        print(header_output)
 
 def tailor_queries(query_item):
     """
@@ -195,7 +200,7 @@ def collect_contents(query_item):
         file_object.close()
     return query
 
-def run_sumo_cmdlet(src, query, time_params):
+def run_sumo_query(src, query, time_params):
     """
     This runs the Sumo Command, and then saves the output and the status
     """
@@ -205,7 +210,10 @@ def run_sumo_cmdlet(src, query, time_params):
 
     (query_status, num_records, iterations) = src.search_job_records_tally(query_jobid)
     if ARGS.VERBOSE:
-        print('::{}::{}::{}::{}::'.format(query_jobid, query_status, num_records, iterations))
+        print('{}'.format(query_jobid))
+        print('{}'.format(query_status))
+        print('{}'.format(num_records))
+        print('{}'.format(iterations))
 
     query_records = src.search_job_records(query_jobid, LIMIT, 0)
     if ARGS.VERBOSE:
@@ -215,49 +223,34 @@ def run_sumo_cmdlet(src, query, time_params):
     if ARGS.VERBOSE:
         print(query_messages)
 
-    process_records_output(query_records)
-
-def process_records_output(query_records):
-    """
-    This handles output and formats the results into json, csv, or other formats
-    """
-    csv_separator = ','
-    tab_separator = '\t'
-    eol_separator = '\n'
-
     header_list = list()
+    record_body_list = list()
+
+    MY_SEP = CSV_SEP
+    if ARGS.OUT_FORMAT == 'txt':
+       MY_SEP = TAB_SEP
 
     fields = query_records["fields"]
     for field in fields:
         fieldname = field["name"]
-        if ARGS.OUT_FORMAT == 'txt':
-            fieldname = '{:40s}'.format(str(fieldname))
         header_list.append(fieldname)
 
     records = query_records["records"]
-    record_body_list = list()
-
     for record in records:
         record_line_list = list()
         for field in fields:
             fieldname = field["name"]
             recordname = str(record["map"][fieldname])
-            if ARGS.OUT_FORMAT == 'txt':
-                recordname = '{:40s}'.format(str(record["map"][fieldname]))
             record_line_list.append(recordname)
-        if ARGS.OUT_FORMAT == 'csv':
-            record_line = csv_separator.join(record_line_list)
-        if ARGS.OUT_FORMAT == 'txt':
-            record_line = tab_separator.join(record_line_list)
+            record_line = MY_SEP.join(record_line_list)
         record_body_list.append(record_line)
 
-    if ARGS.OUT_FORMAT == 'csv':
-        print(csv_separator.join(header_list))
-        print(eol_separator.join(record_body_list))
+    header = MY_SEP.join(header_list)
+    output = EOL_SEP.join(record_body_list)
 
-    if ARGS.OUT_FORMAT == 'txt':
-        print(tab_separator.join(header_list))
-        print(eol_separator.join(record_body_list))
+    header_output = EOL_SEP.join((header, output))
+
+    return header_output
 
 class SumoApiClient():
     """
