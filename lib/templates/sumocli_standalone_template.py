@@ -111,9 +111,9 @@ def main():
     Once done, then issue the command required
     """
 
-    src = SumoApiClient(SUMO_UID, SUMO_KEY, SUMO_END)
+    _service = SumoApiClient(SUMO_UID, SUMO_KEY, SUMO_END)
 
-    time_params = calculate_range()
+    _time_params = calculate_range()
 
 def calculate_range():
     """
