@@ -22,6 +22,7 @@ Style:
 __version__ = 0.90
 __author__ = "Wayne Schmidt (wschmidt@sumologic.com)"
 
+### beginning ###
 import json
 import pprint
 import os
@@ -35,9 +36,7 @@ sys.dont_write_bytecode = 1
 
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
-
-sumo_query is a cmdlet managing queries.
-
+run_query is a Sumo Logic cli cmdlet managing queries
 """)
 
 PARSER.add_argument("-a", metavar='<secret>', dest='MY_SECRET', \
@@ -118,13 +117,15 @@ except KeyError as myerror:
 
 PPRINT = pprint.PrettyPrinter(indent=4)
 
+### beginning ###
+
 def main():
     """
     Setup the Sumo API connection, using the required tuple of region, id, and key.
     Once done, then issue the command required
     """
 
-    src = SumoApiClient(SUMO_UID, SUMO_KEY, SUMO_END)
+    source = SumoApiClient(SUMO_UID, SUMO_KEY, SUMO_END)
 
     time_params = calculate_range()
 
@@ -134,7 +135,7 @@ def main():
     for query_item in query_list:
         query_data = collect_contents(query_item)
         query_data = tailor_queries(query_data)
-        header_output = run_sumo_query(src, query_data, time_params)
+        header_output = run_sumo_query(source, query_data, time_params)
         write_query_output(header_output, counter)
         counter += 1
 
@@ -227,26 +228,26 @@ def collect_contents(query_item):
         file_object.close()
     return query
 
-def run_sumo_query(src, query, time_params):
+def run_sumo_query(source, query, time_params):
     """
     This runs the Sumo Command, and then saves the output and the status
     """
 
-    query_job = src.search_job(query, time_params)
+    query_job = source.search_job(query, time_params)
     query_jobid = query_job["id"]
 
-    (query_status, num_records, iterations) = src.search_job_records_tally(query_jobid)
+    (query_status, num_records, iterations) = source.search_job_records_tally(query_jobid)
     if ARGS.VERBOSE > 5:
         print('{}'.format(query_jobid))
         print('{}'.format(query_status))
         print('{}'.format(num_records))
         print('{}'.format(iterations))
 
-    query_records = src.search_job_records(query_jobid, LIMIT, 0)
+    query_records = source.search_job_records(query_jobid, LIMIT, 0)
     if ARGS.VERBOSE > 7:
         print(query_records)
 
-    query_messages = src.search_job_messages(query_jobid, LIMIT, 0)
+    query_messages = source.search_job_messages(query_jobid, LIMIT, 0)
     if ARGS.VERBOSE > 7:
         print(query_messages)
 
@@ -275,6 +276,7 @@ def run_sumo_query(src, query, time_params):
 
     return header_output
 
+### class ###
 class SumoApiClient():
     """
     This is defined SumoLogic API Client
@@ -337,7 +339,8 @@ class SumoApiClient():
         response.raise_for_status()
         return response
 
-### included code
+### class ###
+### methods ###
 
     def search_job(self, query, time_params):
 
@@ -450,8 +453,7 @@ class SumoApiClient():
         """
         return self.delete('/v1/search/jobs/' + str(query_jobid))
 
-### included code
-
+### methods ###
 
 if __name__ == '__main__':
     main()

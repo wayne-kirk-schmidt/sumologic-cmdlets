@@ -1,0 +1,64 @@
+### class ###
+class SumoApiClient():
+    """
+    This is defined SumoLogic API Client
+    The class includes the HTTP methods, cmdlets, and init methods
+    """
+
+    def __init__(self, access_id, access_key, region, cookieFile='cookies.txt'):
+        """
+        Initializes the Sumo Logic object
+        """
+        self.session = requests.Session()
+        self.session.auth = (access_id, access_key)
+        self.session.headers = {'content-type': 'application/json', \
+            'accept': 'application/json'}
+        self.apipoint = 'https://api.' + region + '.sumologic.com/api'
+        cookiejar = http.cookiejar.FileCookieJar(cookieFile)
+        self.session.cookies = cookiejar
+
+    def delete(self, method, params=None, headers=None, data=None):
+        """
+        Defines a Sumo Logic Delete operation
+        """
+        response = self.session.delete(self.apipoint + method, \
+            params=params, headers=headers, data=data)
+        if response.status_code != 200:
+            response.reason = response.text
+        response.raise_for_status()
+        return response
+
+    def get(self, method, params=None, headers=None):
+        """
+        Defines a Sumo Logic Get operation
+        """
+        response = self.session.get(self.apipoint + method, \
+            params=params, headers=headers)
+        if response.status_code != 200:
+            response.reason = response.text
+        response.raise_for_status()
+        return response
+
+    def post(self, method, data, headers=None, params=None):
+        """
+        Defines a Sumo Logic Post operation
+        """
+        response = self.session.post(self.apipoint + method, \
+            data=json.dumps(data), headers=headers, params=params)
+        if response.status_code != 200:
+            response.reason = response.text
+        response.raise_for_status()
+        return response
+
+    def put(self, method, data, headers=None, params=None):
+        """
+        Defines a Sumo Logic Put operation
+        """
+        response = self.session.put(self.apipoint + method, \
+            data=json.dumps(data), headers=headers, params=params)
+        if response.status_code != 200:
+            response.reason = response.text
+        response.raise_for_status()
+        return response
+
+### class ###

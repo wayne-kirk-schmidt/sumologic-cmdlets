@@ -22,78 +22,78 @@ Style:
 __version__ = 1.00
 __author__ = "Wayne Schmidt (wschmidt@sumologic.com)"
 
-import urllib.request
-import base64
+### beginning ###
 import json
 import pprint
 import os
 import sys
 import argparse
+import http
+import requests
 sys.dont_write_bytecode = 1
 
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
-
-get_roles is part of sumocli, a tool which wraps the Sumologic API.
-It meshes with DevOps practices and allows teams to query, audit, backup, 
-and manage sumologic deployments in an agile and modular way.
-
+get_roles is a Sumo Logic cli cmdlet retrieving information about roles
 """)
 
-PARSER.add_argument("-u", metavar='<uid>', dest='MY_UID', help="Set Sumo apiuid")
-PARSER.add_argument("-k", metavar='<key>', dest='MY_KEY', help="Set Sumo apikey")
-PARSER.add_argument("-a", metavar='<api>', dest='MY_API', help="Set Sumo apiservice")
-PARSER.add_argument("-o", metavar='<org>', dest='MY_ORG', help="Set Sumo orgid")
-
-PARSER.add_argument("-c", metavar='<cfg>', dest='MY_CFG', help="Set Sumo configfile")
-
+PARSER.add_argument("-a", metavar='<secret>', dest='MY_SECRET', \
+                    help="set api (format: <key>:<secret>) ")
+PARSER.add_argument("-k", metavar='<client>', dest='MY_CLIENT', \
+                    help="set key (format: <site>_<orgid>) ")
+PARSER.add_argument("-e", metavar='<endpoint>', dest='MY_ENDPOINT', \
+                    help="set endpoint (format: <endpoint>) ")
 PARSER.add_argument("-f", metavar='<fmt>', default="list", dest='oformat', \
                     help="Specify output format (default = list )")
-
 PARSER.add_argument("-m", default=0, metavar='<myself>', \
                     dest='myself', help="provide specific id to lookup")
-
 PARSER.add_argument("-p", type=int, default=0, metavar='<parent>', \
                     dest='parentid', help="provide parent id to locate with")
-
 PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
                     dest='verbose', help="Increase verbosity")
-
 PARSER.add_argument("-n", "--noexec", action='store_true', \
                     help="Print but do not execute commands")
 
 ARGS = PARSER.parse_args()
 
-if ARGS.MY_UID:
-    os.environ["SUMO_UID"] = ARGS.MY_UID
-if ARGS.MY_KEY:
-    os.environ["SUMO_KEY"] = ARGS.MY_KEY
-if ARGS.MY_ORG:
-    os.environ["SUMO_ORG"] = ARGS.MY_ORG
-if ARGS.MY_API:
-    os.environ["SUMO_API"] = ARGS.MY_API
+if ARGS.MY_SECRET:
+    (MY_APINAME, MY_APISECRET) = ARGS.MY_SECRET.split(':')
+    os.environ['SUMO_UID'] = MY_APINAME
+    os.environ['SUMO_KEY'] = MY_APISECRET
+
+if ARGS.MY_CLIENT:
+    (MY_DEPLOYMENT, MY_ORGID) = ARGS.MY_CLIENT.split('_')
+    os.environ['SUMO_LOC'] = MY_DEPLOYMENT
+    os.environ['SUMO_ORG'] = MY_ORGID
+    os.environ['SUMO_TAG'] = ARGS.MY_CLIENT
+
+if ARGS.MY_ENDPOINT:
+    os.environ['SUMO_END'] = ARGS.MY_ENDPOINT
+else:
+    os.environ['SUMO_END'] = os.environ['SUMO_LOC']
 
 try:
     SUMO_UID = os.environ['SUMO_UID']
     SUMO_KEY = os.environ['SUMO_KEY']
-    SUMO_API = os.environ['SUMO_API']
+    SUMO_LOC = os.environ['SUMO_LOC']
     SUMO_ORG = os.environ['SUMO_ORG']
+    SUMO_END = os.environ['SUMO_END']
 except KeyError as myerror:
     print('Environment Variable Not Set :: {} '.format(myerror.args[0]))
 
 PP = pprint.PrettyPrinter(indent=4)
-SUMO_CRED = SUMO_UID + ':' + SUMO_KEY
 
+### beginning ###
 
 def main():
     """
     Setup the Sumo API connection, using the required tuple of region, id, and key.
     Once done, then issue the command required
     """
-    src = SumoApiClient(SUMO_UID, SUMO_KEY, SUMO_API)
-    run_sumo_cmdlet(src)
+    source = SumoApiClient(SUMO_UID, SUMO_KEY, SUMO_END)
+    run_sumo_cmdlet(source)
 
-def run_sumo_cmdlet(src):
+def run_sumo_cmdlet(source):
     """
     This will collect the information on object for sumologic and then collect that into a list.
     the output of the action will provide a tuple of the orgid, objecttype, and id
@@ -103,7 +103,7 @@ def run_sumo_cmdlet(src):
     target_dict["orgid"] = SUMO_ORG
     target_dict[target_object] = dict()
 
-    src_items = src.get_roles()
+    src_items = source.get_roles()
 
     for src_item in src_items:
         if (str(src_item['id']) == str(ARGS.myself) or ARGS.myself == 0):
@@ -124,73 +124,91 @@ def run_sumo_cmdlet(src):
     if ARGS.oformat == "json":
         print(json.dumps(target_dict, indent=4))
 
+### class ###
 class SumoApiClient():
     """
-    This is the boilerplate of the SumoAPI client. It will
-    create header, get, put, and http methods.
-
-    Once this is done, then it will use the API to issue the appropriate request
+    This is defined SumoLogic API Client
+    The class includes the HTTP methods, cmdlets, and init methods
     """
 
-    def __init__(self, access_id, access_key, region):
+    def __init__(self, access_id, access_key, region, cookieFile='cookies.txt'):
         """
-        This sets up the API URL to base requests from.
-        Future versions will be able to get a list of all deployments, and find the appropriate one.
+        Initializes the Sumo Logic object
         """
-        self.access_id = access_id
-        self.access_key = access_key
-        self.base_url = 'https://api.' + region + '.sumologic.com/api'
+        self.session = requests.Session()
+        self.session.auth = (access_id, access_key)
+        self.session.headers = {'content-type': 'application/json', \
+            'accept': 'application/json'}
+        self.apipoint = 'https://api.' + region + '.sumologic.com/api'
+        cookiejar = http.cookiejar.FileCookieJar(cookieFile)
+        self.session.cookies = cookiejar
 
-    def __http_get(self, url):
+    def delete(self, method, params=None, headers=None, data=None):
         """
-        Using an HTTP client, this creates a GET for read actions
+        Defines a Sumo Logic Delete operation
         """
-        if ARGS.verbose > 8:
-            print('http get from: ' + url)
-        req = urllib.request.Request(url, headers=self.__create_header())
-        with urllib.request.urlopen(req) as res:
-            body = res.read()
-            return json.loads(body)
+        response = self.session.delete(self.apipoint + method, \
+            params=params, headers=headers, data=data)
+        if response.status_code != 200:
+            response.reason = response.text
+        response.raise_for_status()
+        return response
 
-    def __http_post(self, url, data):
+    def get(self, method, params=None, headers=None):
         """
-        Using an HTTP client, this creates a POST for write actions
+        Defines a Sumo Logic Get operation
         """
-        json_str = json.dumps(data)
-        post = json_str.encode('utf-8')
-        if ARGS.verbose > 8:
-            print('http post to: ' + url)
-            print('http post data: ' + json_str)
-        req = urllib.request.Request(url, data=post, method='POST', headers=self.__create_header())
-        with urllib.request.urlopen(req) as res:
-            body = res.read()
-            return json.loads(body)
+        response = self.session.get(self.apipoint + method, \
+            params=params, headers=headers)
+        if response.status_code != 200:
+            response.reason = response.text
+        response.raise_for_status()
+        return response
 
-    def __create_header(self):
+    def post(self, method, data, headers=None, params=None):
         """
-        Using an HTTP client, this constructs the header, providing the access credentials
+        Defines a Sumo Logic Post operation
         """
-        basic = base64.b64encode('{}:{}'.format(self.access_id, self.access_key).encode('utf-8'))
-        return {"Authorization": "Basic " + basic.decode('utf-8'), \
-        "Content-Type": "application/json"}
+        response = self.session.post(self.apipoint + method, \
+            data=json.dumps(data), headers=headers, params=params)
+        if response.status_code != 200:
+            response.reason = response.text
+        response.raise_for_status()
+        return response
 
-### included code
+    def put(self, method, data, headers=None, params=None):
+        """
+        Defines a Sumo Logic Put operation
+        """
+        response = self.session.put(self.apipoint + method, \
+            data=json.dumps(data), headers=headers, params=params)
+        if response.status_code != 200:
+            response.reason = response.text
+        response.raise_for_status()
+        return response
+
+### class ###
+### methods ###
 
     def get_roles(self):
         """
         Using an HTTP client, this uses a GET to retrieve all role information.
         """
-        url = self.base_url + "/v1/roles"
-        return self.__http_get(url)['data']
+        url = "/v1/roles"
+        body = self.get(url).text
+        results = json.loads(body)['data']
+        return results
 
     def get_role(self, myself):
         """
         Using an HTTP client, this uses a GET to retrieve single role information.
         """
-        url = self.base_url + "/v1/roles/" + str(myself)
-        return self.__http_get(url)['data']
+        url = "/v1/roles/" + str(myself)
+        body = self.get(url).text
+        results = json.loads(body)['data']
+        return results
 
-### included code
+### methods ###
 
 if __name__ == '__main__':
     main()

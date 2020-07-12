@@ -1,0 +1,62 @@
+### beginning ###
+import json
+import pprint
+import os
+import sys
+import argparse
+import http
+import requests
+sys.dont_write_bytecode = 1
+
+MY_CFG = 'undefined'
+PARSER = argparse.ArgumentParser(description="""
+get_connections is a Sumo Logic cli cmdlet retrieving information about connections
+""")
+
+PARSER.add_argument("-a", metavar='<secret>', dest='MY_SECRET', \
+                    help="set api (format: <key>:<secret>) ")
+PARSER.add_argument("-k", metavar='<client>', dest='MY_CLIENT', \
+                    help="set key (format: <site>_<orgid>) ")
+PARSER.add_argument("-e", metavar='<endpoint>', dest='MY_ENDPOINT', \
+                    help="set endpoint (format: <endpoint>) ")
+PARSER.add_argument("-f", metavar='<fmt>', default="list", dest='oformat', \
+                    help="Specify output format (default = list )")
+PARSER.add_argument("-m", default=0, metavar='<myself>', \
+                    dest='myself', help="provide specific id to lookup")
+PARSER.add_argument("-p", type=int, default=0, metavar='<parent>', \
+                    dest='parentid', help="provide parent id to locate with")
+PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
+                    dest='verbose', help="Increase verbosity")
+PARSER.add_argument("-n", "--noexec", action='store_true', \
+                    help="Print but do not execute commands")
+
+ARGS = PARSER.parse_args()
+
+if ARGS.MY_SECRET:
+    (MY_APINAME, MY_APISECRET) = ARGS.MY_SECRET.split(':')
+    os.environ['SUMO_UID'] = MY_APINAME
+    os.environ['SUMO_KEY'] = MY_APISECRET
+
+if ARGS.MY_CLIENT:
+    (MY_DEPLOYMENT, MY_ORGID) = ARGS.MY_CLIENT.split('_')
+    os.environ['SUMO_LOC'] = MY_DEPLOYMENT
+    os.environ['SUMO_ORG'] = MY_ORGID
+    os.environ['SUMO_TAG'] = ARGS.MY_CLIENT
+
+if ARGS.MY_ENDPOINT:
+    os.environ['SUMO_END'] = ARGS.MY_ENDPOINT
+else:
+    os.environ['SUMO_END'] = os.environ['SUMO_LOC']
+
+try:
+    SUMO_UID = os.environ['SUMO_UID']
+    SUMO_KEY = os.environ['SUMO_KEY']
+    SUMO_LOC = os.environ['SUMO_LOC']
+    SUMO_ORG = os.environ['SUMO_ORG']
+    SUMO_END = os.environ['SUMO_END']
+except KeyError as myerror:
+    print('Environment Variable Not Set :: {} '.format(myerror.args[0]))
+
+PP = pprint.PrettyPrinter(indent=4)
+
+### beginning ###

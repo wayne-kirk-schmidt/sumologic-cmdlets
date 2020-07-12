@@ -2,26 +2,27 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: sumocli_standard_template
+Exaplanation: sumo_logic_template is a Sumo Logic cmdlet
 
 Usage:
-   $ python  sumo_query [ options ]
+   $ python  sumo_logic_template [ options ]
 
 Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumocli_standard_template
-    @version        0.90
+    @name           sumo_logic_template
+    @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
     @license-name   GNU GPL
     @license-url    http://www.gnu.org/licenses/gpl.html
 """
 
-__version__ = 0.90
+__version__ = 1.00
 __author__ = "Wayne Schmidt (wschmidt@sumologic.com)"
 
+### beginning ###
 import json
 import pprint
 import os
@@ -35,9 +36,7 @@ sys.dont_write_bytecode = 1
 
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
-
-sumo_query is a cmdlet managing queries.
-
+sumo_logic_template is a Sumo Logic cli cmdlet
 """)
 
 PARSER.add_argument("-a", metavar='<secret>', dest='MY_SECRET', \
@@ -46,6 +45,9 @@ PARSER.add_argument("-k", metavar='<client>', dest='MY_CLIENT', \
                     help="set key (format: <site>_<orgid>) ")
 PARSER.add_argument("-e", metavar='<endpoint>', default='us2', dest='MY_ENDPOINT', \
                     help="set endpoint (format: <endpoint>) ")
+PARSER.add_argument("-q", metavar='<query>', dest='MY_QUERY', help="set query_content")
+PARSER.add_argument("-r", metavar='<range>', dest='MY_RANGE', default='1h', \
+                    help="set query_range")
 PARSER.add_argument("-o", metavar='<fmt>', default="csv", dest='OUT_FORMAT', \
                     help="set query_output (values: txt, csv)")
 PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
@@ -58,6 +60,16 @@ MIN_S = 60
 HOUR_M = 60
 DAY_H = 24
 WEEK_D = 7
+
+LIMIT = 10000
+LONGQUERY_LIMIT = 100
+
+DEFAULT_QUERY = '''
+_index=sumologic_volume
+| count by _sourceCategory
+'''
+
+QUERY_EXT = '.sqy'
 
 CSV_SEP = ','
 TAB_SEP = '\t'
@@ -105,37 +117,17 @@ except KeyError as myerror:
 
 PPRINT = pprint.PrettyPrinter(indent=4)
 
+### beginning ###
+
 def main():
     """
     Setup the Sumo API connection, using the required tuple of region, id, and key.
     Once done, then issue the command required
     """
 
-    _service = SumoApiClient(SUMO_UID, SUMO_KEY, SUMO_END)
+    source = SumoApiClient(SUMO_UID, SUMO_KEY, SUMO_END)
 
-    _time_params = calculate_range()
-
-def calculate_range():
-    """
-    This calculates time ranges based on range from current day
-    If specified "NNX to MMY" then NNX is start and MMY is finish
-    """
-
-    number = 1
-    period = "h"
-
-    if ARGS.MY_RANGE:
-        number = re.match(r'\d+', ARGS.MY_RANGE.replace('-', ''))
-        period = ARGS.MY_RANGE.replace(number.group(), '')
-
-    time_to = NOW_TIME
-    time_from = time_to - (int(number.group()) * int(TIME_TABLE[period]))
-    TIME_PARAMS["time_to"] = time_to
-    TIME_PARAMS["time_from"] = time_from
-    TIME_PARAMS["time_zone"] = 'UTC'
-    TIME_PARAMS["by_receipt_time"] = False
-    return TIME_PARAMS
-
+### class ###
 class SumoApiClient():
     """
     This is defined SumoLogic API Client
@@ -198,10 +190,10 @@ class SumoApiClient():
         response.raise_for_status()
         return response
 
-### included code
+### class ###
+### methods ###
 
-### included code
-
+### methods ###
 
 if __name__ == '__main__':
     main()
