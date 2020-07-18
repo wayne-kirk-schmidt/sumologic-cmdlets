@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: get_fers a cmdlet within the sumocli that retrieves information
+Exaplanation: list_users a cmdlet within the sumocli that retrieves information
 
 Usage:
-   $ python  get_fers [ options ]
+   $ python  list_users [ options ]
 
 Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumocli_get_fers
+    @name           sumocli_list_users
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
@@ -34,7 +34,7 @@ sys.dont_write_bytecode = 1
 
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
-get_fers is a Sumo Logic cli cmdlet retrieving information about fers
+list_users is a Sumo Logic cli cmdlet retrieving information about users
 """)
 
 PARSER.add_argument("-a", metavar='<secret>', dest='MY_SECRET', \
@@ -97,19 +97,19 @@ def run_sumo_cmdlet(source):
     This will collect the information on object for sumologic and then collect that into a list.
     the output of the action will provide a tuple of the orgid, objecttype, and id
     """
-    target_object = "fer"
+    target_object = "user"
     target_dict = dict()
     target_dict["orgid"] = SUMO_ORG
     target_dict[target_object] = dict()
 
-    src_items = source.get_fers()
+    src_items = source.get_users()
 
     for src_item in src_items:
         if (str(src_item['id']) == str(ARGS.myself) or ARGS.myself == 0):
             target_dict[target_object][src_item['id']] = dict()
             target_dict[target_object][src_item['id']].update({'parent' : SUMO_ORG})
             target_dict[target_object][src_item['id']].update({'id' : src_item['id']})
-            target_dict[target_object][src_item['id']].update({'name' : src_item['name']})
+            target_dict[target_object][src_item['id']].update({'email' : src_item['email']})
             target_dict[target_object][src_item['id']].update({'dump' : src_item})
 
     if ARGS.oformat == "sum":
@@ -189,24 +189,25 @@ class SumoApiClient():
 ### class ###
 ### methods ###
 
-    def get_fers(self):
+    def get_users(self):
         """
-        Using an HTTP client, this uses a GET to retrieve all fer information.
+        Using an HTTP client, this uses a GET to retrieve all user information.
         """
-        url = "/v1/extractionRules"
+        url = "/v1/users"
         body = self.get(url).text
         results = json.loads(body)['data']
         return results
 
-    def get_fer(self, myself):
+    def get_user(self, myself):
         """
-        Using an HTTP client, this uses a GET to retrieve single fer information.
+        Using an HTTP client, this uses a GET to retrieve single user information.
         """
-        url = "/v1/extractionRules/" + str(myself)
+        url = "/v1/users/" + str(myself)
         body = self.get(url).text
         results = json.loads(body)['data']
         return results
 
 ### methods ###
+
 if __name__ == '__main__':
     main()

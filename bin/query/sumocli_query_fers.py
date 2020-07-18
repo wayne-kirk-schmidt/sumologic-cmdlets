@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: get_myfolders  a cmdlet within the sumocli that retrieves information
+Exaplanation: query_fers a cmdlet within the sumocli that retrieves information
 
 Usage:
-   $ python  get_myfolders  [ options ]
+   $ python  query_fers [ options ]
 
 Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumocli_get_myfolders
+    @name           sumocli_query_fers
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
@@ -34,7 +34,7 @@ sys.dont_write_bytecode = 1
 
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
-get_folders is a Sumo Logic cli cmdlet retrieving information about folders
+query_fers is a Sumo Logic cli cmdlet retrieving information about fers
 """)
 
 PARSER.add_argument("-a", metavar='<secret>', dest='MY_SECRET', \
@@ -43,8 +43,8 @@ PARSER.add_argument("-k", metavar='<client>', dest='MY_CLIENT', \
                     help="set key (format: <site>_<orgid>) ")
 PARSER.add_argument("-e", metavar='<endpoint>', dest='MY_ENDPOINT', \
                     help="set endpoint (format: <endpoint>) ")
-PARSER.add_argument("-f", metavar='<fmt>', default="list", dest='oformat', \
-                    help="Specify output format (default = list )")
+PARSER.add_argument("-f", metavar='<outfile>', default="stdout", dest='outfile', \
+                    help="Specify output format (default = stdout )")
 PARSER.add_argument("-m", default=0, metavar='<myself>', \
                     dest='myself', help="provide specific id to lookup")
 PARSER.add_argument("-p", type=int, default=0, metavar='<parent>', \
@@ -84,7 +84,6 @@ except KeyError as myerror:
 PP = pprint.PrettyPrinter(indent=4)
 
 ### beginning ###
-
 def main():
     """
     Setup the Sumo API connection, using the required tuple of region, id, and key.
@@ -98,15 +97,21 @@ def run_sumo_cmdlet(source):
     This will collect the information on object for sumologic and then collect that into a list.
     the output of the action will provide a tuple of the orgid, objecttype, and id
     """
-    target_object = "myfolders"
+    target_object = "fer"
     target_dict = dict()
     target_dict["orgid"] = SUMO_ORG
     target_dict[target_object] = dict()
 
-    src_items = source.get_myfolders()
-    target_dict[target_object]['id'] = dict()
-    target_dict[target_object]['id'].update({'parent' : SUMO_ORG})
-    target_dict[target_object]['id'].update({'dump' : src_items})
+    src_items = source.get_fers()
+
+    for src_item in src_items:
+        if (str(src_item['id']) == str(ARGS.myself) or ARGS.myself == 0):
+            target_dict[target_object][src_item['id']] = dict()
+            target_dict[target_object][src_item['id']].update({'parent' : SUMO_ORG})
+            target_dict[target_object][src_item['id']].update({'id' : src_item['id']})
+            target_dict[target_object][src_item['id']].update({'name' : src_item['name']})
+            target_dict[target_object][src_item['id']].update({'dump' : src_item})
+
     print(json.dumps(target_dict, indent=4))
 
 ### class ###
@@ -175,25 +180,24 @@ class SumoApiClient():
 ### class ###
 ### methods ###
 
-    def get_myfolders(self):
+    def get_fers(self):
         """
-        Using an HTTP client, this uses a GET to retrieve all connection information.
+        Using an HTTP client, this uses a GET to retrieve all fer information.
         """
-        url = "/v2/content/folders/personal/"
+        url = "/v1/extractionRules"
         body = self.get(url).text
-        results = json.loads(body)
+        results = json.loads(body)['data']
         return results
 
-    def get_myfolder(self, myself):
+    def get_fer(self, myself):
         """
-        Using an HTTP client, this uses a GET to retrieve single connection information.
+        Using an HTTP client, this uses a GET to retrieve single fer information.
         """
-        url = "/v2/content/folders/personal/" + str(myself)
+        url = "/v1/extractionRules/" + str(myself)
         body = self.get(url).text
-        results = json.loads(body)
+        results = json.loads(body)['data']
         return results
 
 ### methods ###
-
 if __name__ == '__main__':
     main()

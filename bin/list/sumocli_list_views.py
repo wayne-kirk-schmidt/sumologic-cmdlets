@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: get_collectors a cmdlet within the sumocli that retrieves information
+Exaplanation: list_views a cmdlet within the sumocli that retrieves information
 
 Usage:
-   $ python  get_collectors [ options ]
+   $ python  list_views [ options ]
 
 Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumocli_get_collectors
+    @name           sumocli_list_views
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
@@ -34,9 +34,8 @@ sys.dont_write_bytecode = 1
 
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
-get_collectors is a Sumo Logic cli cmdlet retrieving information about collectors
+list_views is a Sumo Logic cli cmdlet retrieving information about views
 """)
-
 
 PARSER.add_argument("-a", metavar='<secret>', dest='MY_SECRET', \
                     help="set api (format: <key>:<secret>) ")
@@ -85,6 +84,7 @@ except KeyError as myerror:
 PP = pprint.PrettyPrinter(indent=4)
 
 ### beginning ###
+
 def main():
     """
     Setup the Sumo API connection, using the required tuple of region, id, and key.
@@ -98,18 +98,19 @@ def run_sumo_cmdlet(source):
     This will collect the information on object for sumologic and then collect that into a list.
     the output of the action will provide a tuple of the orgid, objecttype, and id
     """
-    target_object = "collector"
+    target_object = "view"
     target_dict = dict()
     target_dict["orgid"] = SUMO_ORG
     target_dict[target_object] = dict()
 
-    src_items = source.get_collectors()
+    src_items = source.get_views()
+
     for src_item in src_items:
         if (str(src_item['id']) == str(ARGS.myself) or ARGS.myself == 0):
             target_dict[target_object][src_item['id']] = dict()
             target_dict[target_object][src_item['id']].update({'parent' : SUMO_ORG})
             target_dict[target_object][src_item['id']].update({'id' : src_item['id']})
-            target_dict[target_object][src_item['id']].update({'name' : src_item['name']})
+            target_dict[target_object][src_item['id']].update({'name' : src_item['indexName']})
             target_dict[target_object][src_item['id']].update({'dump' : src_item})
 
     if ARGS.oformat == "sum":
@@ -123,7 +124,7 @@ def run_sumo_cmdlet(source):
     if ARGS.oformat == "json":
         print(json.dumps(target_dict, indent=4))
 
-#### class ###
+### class ###
 class SumoApiClient():
     """
     This is defined SumoLogic API Client
@@ -186,25 +187,25 @@ class SumoApiClient():
         response.raise_for_status()
         return response
 
-#### class ###
+### class ###
 ### methods ###
 
-    def get_collectors(self):
+    def get_views(self):
         """
-        Using an HTTP client, this uses a GET to retrieve all collector information.
+        Using an HTTP client, this uses a GET to retrieve all view information.
         """
-        url = "/v1/collectors"
+        url = "/v1/scheduledViews"
         body = self.get(url).text
-        results = json.loads(body)['collectors']
+        results = json.loads(body)['data']
         return results
 
-    def get_collector(self, myself):
+    def get_view(self, myself):
         """
-        Using an HTTP client, this uses a GET to retrieve single collector information.
+        Using an HTTP client, this uses a GET to retrieve single view information.
         """
-        url = "/v1/collectors/" + str(myself)
+        url = "/v1/scheduledViews/" + str(myself)
         body = self.get(url).text
-        results = json.loads(body)['collectors']
+        results = json.loads(body)['data']
         return results
 
 ### methods ###

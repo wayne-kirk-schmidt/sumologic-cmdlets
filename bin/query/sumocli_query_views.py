@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: get_sources a cmdlet within the sumocli that retrieves information
+Exaplanation: query_views a cmdlet within the sumocli that retrieves information
 
 Usage:
-   $ python  get_sources [ options ]
+   $ python  query_views [ options ]
 
 Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumocli_get_sources
+    @name           sumocli_query_views
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
@@ -34,7 +34,7 @@ sys.dont_write_bytecode = 1
 
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
-get_sources is a Sumo Logic cli cmdlet retrieving information about sources
+query_views is a Sumo Logic cli cmdlet retrieving information about views
 """)
 
 PARSER.add_argument("-a", metavar='<secret>', dest='MY_SECRET', \
@@ -43,8 +43,8 @@ PARSER.add_argument("-k", metavar='<client>', dest='MY_CLIENT', \
                     help="set key (format: <site>_<orgid>) ")
 PARSER.add_argument("-e", metavar='<endpoint>', dest='MY_ENDPOINT', \
                     help="set endpoint (format: <endpoint>) ")
-PARSER.add_argument("-f", metavar='<fmt>', default="list", dest='oformat', \
-                    help="Specify output format (default = list )")
+PARSER.add_argument("-f", metavar='<outfile>', default="stdout", dest='outfile', \
+                    help="Specify output format (default = stdout )")
 PARSER.add_argument("-m", default=0, metavar='<myself>', \
                     dest='myself', help="provide specific id to lookup")
 PARSER.add_argument("-p", type=int, default=0, metavar='<parent>', \
@@ -84,6 +84,7 @@ except KeyError as myerror:
 PP = pprint.PrettyPrinter(indent=4)
 
 ### beginning ###
+
 def main():
     """
     Setup the Sumo API connection, using the required tuple of region, id, and key.
@@ -97,41 +98,22 @@ def run_sumo_cmdlet(source):
     This will collect the information on object for sumologic and then collect that into a list.
     the output of the action will provide a tuple of the orgid, objecttype, and id
     """
+    target_object = "view"
     target_dict = dict()
     target_dict["orgid"] = SUMO_ORG
-    target_object = "source"
     target_dict[target_object] = dict()
 
-######
+    src_items = source.get_views()
 
-    src_items = source.get_collectors()
     for src_item in src_items:
-        if (str(src_item['id']) == str(ARGS.parent) or ARGS.parent == 0):
-            colid = str(src_item['id'])
-            src_subitems = source.get_sources(colid)
-            for src_subitem in src_subitems:
-                if (str(src_subitem['id']) == str(ARGS.myself) or ARGS.myself == 0):
-                    target_dict[target_object][src_subitem['id']] = dict()
-                    target_dict[target_object][src_subitem['id']].update( \
-                        {'parent' : src_item['id']})
-                    target_dict[target_object][src_subitem['id']].update( \
-                        {'id' : src_subitem['id']})
-                    target_dict[target_object][src_subitem['id']].update( \
-                        {'name' : src_subitem['name']})
-                    target_dict[target_object][src_subitem['id']].update( \
-                        {'dump' : src_subitem})
+        if (str(src_item['id']) == str(ARGS.myself) or ARGS.myself == 0):
+            target_dict[target_object][src_item['id']] = dict()
+            target_dict[target_object][src_item['id']].update({'parent' : SUMO_ORG})
+            target_dict[target_object][src_item['id']].update({'id' : src_item['id']})
+            target_dict[target_object][src_item['id']].update({'name' : src_item['indexName']})
+            target_dict[target_object][src_item['id']].update({'dump' : src_item})
 
-
-    if ARGS.oformat == "sum":
-        print('Orgid: {} {} number: {}'.format(SUMO_ORG, \
-            target_object, len(target_dict[target_object])))
-
-    if ARGS.oformat == "list":
-        for key in sorted(target_dict[target_object].keys()):
-            print('{},{},{}'.format(SUMO_ORG, target_object, key))
-
-    if ARGS.oformat == "json":
-        print(json.dumps(target_dict, indent=4))
+    print(json.dumps(target_dict, indent=4))
 
 ### class ###
 class SumoApiClient():
@@ -199,40 +181,22 @@ class SumoApiClient():
 ### class ###
 ### methods ###
 
-    def get_collectors(self):
+    def get_views(self):
         """
-        Using an HTTP client, this uses a GET to retrieve all collectors information.
+        Using an HTTP client, this uses a GET to retrieve all view information.
         """
-        url = "/v1/collectors"
+        url = "/v1/scheduledViews"
         body = self.get(url).text
-        results = json.loads(body)['collectors']
+        results = json.loads(body)['data']
         return results
 
-    def get_collector(self, myself):
+    def get_view(self, myself):
         """
-        Using an HTTP client, this uses a GET to retrieve single collector information.
+        Using an HTTP client, this uses a GET to retrieve single view information.
         """
-        url = "/v1/collectors/" + str(myself)
+        url = "/v1/scheduledViews/" + str(myself)
         body = self.get(url).text
-        results = json.loads(body)['collector']
-        return results
-
-    def get_sources(self, collectorid):
-        """
-        Using an HTTP client, this uses a GET to retrieve for all sources for a given collector
-        """
-        url = "/v1/collectors/" + str(collectorid) + '/sources'
-        body = self.get(url).text
-        results = json.loads(body)['sources']
-        return results
-
-    def get_source(self, collectorid, sourceid):
-        """
-        Using an HTTP client, this uses a GET to retrieve a given source for a given collector
-        """
-        url = "/v1/collectors/" + str(collectorid) + '/sources/' + str(sourceid)
-        body = self.get(url).text
-        results = json.loads(body)['sources']
+        results = json.loads(body)['data']
         return results
 
 ### methods ###

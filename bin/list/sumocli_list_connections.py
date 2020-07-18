@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: get_globalfolders a cmdlet within the sumocli that retrieves information
+Exaplanation: list_connections a cmdlet within the sumocli that retrieves information
 
 Usage:
-   $ python  get_globalfolders [ options ]
+   $ python  list_connections [ options ]
 
 Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumocli_get_globalfolders
+    @name           sumocli_list_connections
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
@@ -34,7 +34,7 @@ sys.dont_write_bytecode = 1
 
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
-get_gfolders is a Sumo Logic cli cmdlet retrieving information about gfolders
+list_connections is a Sumo Logic cli cmdlet retrieving information about connections
 """)
 
 PARSER.add_argument("-a", metavar='<secret>', dest='MY_SECRET', \
@@ -84,6 +84,7 @@ except KeyError as myerror:
 PP = pprint.PrettyPrinter(indent=4)
 
 ### beginning ###
+
 def main():
     """
     Setup the Sumo API connection, using the required tuple of region, id, and key.
@@ -97,16 +98,31 @@ def run_sumo_cmdlet(source):
     This will collect the information on object for sumologic and then collect that into a list.
     the output of the action will provide a tuple of the orgid, objecttype, and id
     """
-    target_object = "globalfolders"
+    target_object = "connection"
     target_dict = dict()
     target_dict["orgid"] = SUMO_ORG
     target_dict[target_object] = dict()
 
-    src_items = source.get_globalfolders()
-    target_dict[target_object]['id'] = dict()
-    target_dict[target_object]['id'].update({'parent' : SUMO_ORG})
-    target_dict[target_object]['id'].update({'dump' : src_items})
-    print(json.dumps(target_dict, indent=4))
+    src_items = source.get_connections()
+
+    for src_item in src_items:
+        if (str(src_item['id']) == str(ARGS.myself) or ARGS.myself == 0):
+            target_dict[target_object][src_item['id']] = dict()
+            target_dict[target_object][src_item['id']].update({'parent' : SUMO_ORG})
+            target_dict[target_object][src_item['id']].update({'id' : src_item['id']})
+            target_dict[target_object][src_item['id']].update({'name' : src_item['name']})
+            target_dict[target_object][src_item['id']].update({'dump' : src_item})
+
+    if ARGS.oformat == "sum":
+        print('Orgid: {} {} number: {}'.format(SUMO_ORG, \
+            target_object, len(target_dict[target_object])))
+
+    if ARGS.oformat == "list":
+        for key in sorted(target_dict[target_object].keys()):
+            print('{},{},{}'.format(SUMO_ORG, target_object, key))
+
+    if ARGS.oformat == "json":
+        print(json.dumps(target_dict, indent=4))
 
 ### class ###
 class SumoApiClient():
@@ -174,22 +190,23 @@ class SumoApiClient():
 ### class ###
 ### methods ###
 
-    def get_globalfolders(self):
+    def get_connections(self):
         """
         Using an HTTP client, this uses a GET to retrieve all connection information.
         """
-        url = "/v2/content/folders/global"
+        url = "/v1/connections"
         body = self.get(url).text
-        results = json.loads(body)
+        results = json.loads(body)['data']
         return results
 
-    def get_globalfolder(self, myself):
+
+    def get_connection(self, myself):
         """
         Using an HTTP client, this uses a GET to retrieve single connection information.
         """
-        url = "/v2/content/folders/global/" + str(myself)
+        url = "/v1/connections/" + str(myself)
         body = self.get(url).text
-        results = json.loads(body)
+        results = json.loads(body)['data']
         return results
 
 ### methods ###

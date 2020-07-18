@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: get_partitions a cmdlet within the sumocli that retrieves information
+Exaplanation: list_collectors a cmdlet within the sumocli that retrieves information
 
 Usage:
-   $ python  get_partitions [ options ]
+   $ python  list_collectors [ options ]
 
 Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumocli_get_partitions
+    @name           sumocli_list_collectors
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
@@ -34,8 +34,9 @@ sys.dont_write_bytecode = 1
 
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
-get_partitions is a Sumo Logic cli cmdlet retrieving information about partitions
+list_collectors is a Sumo Logic cli cmdlet retrieving information about collectors
 """)
+
 
 PARSER.add_argument("-a", metavar='<secret>', dest='MY_SECRET', \
                     help="set api (format: <key>:<secret>) ")
@@ -97,13 +98,12 @@ def run_sumo_cmdlet(source):
     This will collect the information on object for sumologic and then collect that into a list.
     the output of the action will provide a tuple of the orgid, objecttype, and id
     """
-    target_object = "partition"
+    target_object = "collector"
     target_dict = dict()
     target_dict["orgid"] = SUMO_ORG
     target_dict[target_object] = dict()
 
-    src_items = source.get_partitions()
-
+    src_items = source.get_collectors()
     for src_item in src_items:
         if (str(src_item['id']) == str(ARGS.myself) or ARGS.myself == 0):
             target_dict[target_object][src_item['id']] = dict()
@@ -123,7 +123,7 @@ def run_sumo_cmdlet(source):
     if ARGS.oformat == "json":
         print(json.dumps(target_dict, indent=4))
 
-### class ###
+#### class ###
 class SumoApiClient():
     """
     This is defined SumoLogic API Client
@@ -186,26 +186,25 @@ class SumoApiClient():
         response.raise_for_status()
         return response
 
-### class ###
+#### class ###
 ### methods ###
 
-    def get_partitions(self):
+    def get_collectors(self):
         """
-        Using an HTTP client, this uses a GET to retrieve all partitiopartition information.
+        Using an HTTP client, this uses a GET to retrieve all collector information.
         """
-        url = "/v1/partitions"
+        url = "/v1/collectors"
         body = self.get(url).text
-        results = json.loads(body)['data']
+        results = json.loads(body)['collectors']
         return results
 
-
-    def get_partition(self, myself):
+    def get_collector(self, myself):
         """
-        Using an HTTP client, this uses a GET to retrieve single partition information.
+        Using an HTTP client, this uses a GET to retrieve single collector information.
         """
-        url = "/v1/partitions/" + str(myself)
+        url = "/v1/collectors/" + str(myself)
         body = self.get(url).text
-        results = json.loads(body)['data']
+        results = json.loads(body)['collectors']
         return results
 
 ### methods ###
