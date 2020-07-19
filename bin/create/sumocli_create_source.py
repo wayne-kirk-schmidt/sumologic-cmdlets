@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: create_collector a sumocli cmdlet creating a specific collector
+Exaplanation: create_source a sumocli cmdlet creating sources
 
 Usage:
-   $ python  create_collector [ options ]
+   $ python  create_source [ options ]
 
 Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumocli_create_collector
+    @name           sumocli_create_source
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
@@ -35,7 +35,7 @@ sys.dont_write_bytecode = 1
 
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
-create_collector is a Sumo Logic cli cmdlet creating a specific collector
+create_source is a Sumo Logic cli cmdlet creating a specific source
 """)
 
 
@@ -101,14 +101,14 @@ def run_sumo_cmdlet(source):
     This will collect the information on object for sumologic and then collect that into a list.
     the output of the action will provide a tuple of the orgid, objecttype, and id
     """
-    target_object = "collector"
+    target_object = "source"
     target_dict = dict()
     target_dict["orgid"] = SUMO_ORG
     target_dict[target_object] = dict()
 
-    src_items = source.create_collectors()
-    target_id = src_items['collector']['id']
-    src_items = source.get_collectors()
+    src_items = source.create_source(ARGS.parentid)
+    target_id = src_items['source']['id']
+    src_items = source.get_sources(ARGS.parentid)
     for src_item in src_items:
         if str(src_item['id']) == str(target_id):
             target_dict[target_object][src_item['id']] = dict()
@@ -191,7 +191,7 @@ class SumoApiClient():
 
     def get_collectors(self):
         """
-        Using an HTTP client, this uses a GET to retrieve all collector information.
+        Using an HTTP client, this uses a GET to retrieve all collectors information.
         """
         url = "/v1/collectors"
         body = self.get(url).text
@@ -207,40 +207,60 @@ class SumoApiClient():
         results = json.loads(body)['collector']
         return results
 
-    def create_collectors(self):
+    def get_sources(self, parentid):
         """
-        Using an HTTP client, this creates a collector
+        Using an HTTP client, this uses a GET to retrieve for all sources for a given collector
         """
+        url = "/v1/collectors/" + str(parentid) + '/sources'
+        body = self.get(url).text
+        results = json.loads(body)['sources']
+        return results
 
-        collectordata = {
-            "api.version":"v1",
-            "collector":{
-                "name":"SUMO_LOGIC_CLI_NAME",
-                "timeZone":"Etc/UTC",
-                "fields":{
-                },
-                "collectorType":"Hosted",
-                "collectorVersion":""
+    def get_source(self, parentid, myselfid):
+        """
+        Using an HTTP client, this uses a GET to retrieve a given source for a given collector
+        """
+        url = "/v1/collectors/" + str(parentid) + '/sources/' + str(myselfid)
+        body = self.get(url).text
+        results = json.loads(body)['sources']
+        return results
+
+    def create_source(self, parentid):
+        """
+        Using an HTTP client, this creates a source for a collector
+        """
+        sourcedata = {
+            "api.version": "v1",
+            "source":{
+                "name":"SLC_NAME",
+                "description":"SLC_DESCRIPTION",
+                "category":"SLC_SRC_CATEGORY",
+                "encoding":"UTF-8",
+                "sourceType":"HTTP",
+                "automaticDateParsing": True,
+                "multilineProcessingEnabled": True,
+                "useAutolineMatching": True,
+                "forceTimeZone": False,
+                "messagePerRequest": False
             }
         }
-
         if ARGS.jsonfile:
             fileobject = open(ARGS.jsonfile, "r")
-            collectordata = ast.literal_eval((fileobject.read()))
+            sourcedata = ast.literal_eval((fileobject.read()))
 
         if ARGS.verbose:
-            print(collectordata)
+            print(sourcedata)
 
         if ARGS.overrides:
             for override in ARGS.overrides:
                 or_key, or_value = override.split('=')
-                collectordata['collector'][or_key] = or_value
+                sourcedata['source'][or_key] = or_value
 
         if ARGS.verbose:
-            print(collectordata)
+            print(sourcedata)
 
-        url = "/v1/collectors"
-        body = self.post(url, collectordata).text
+        url = "/v1/collectors/" + str(parentid) + "/sources"
+        body = self.post(url, sourcedata).text
         results = json.loads(body)
         return results
 

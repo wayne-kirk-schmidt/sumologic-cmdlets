@@ -6,6 +6,10 @@
         "category":"SLC_SRC_CATEGORY",
         "encoding":"UTF-8",
         "sourceType":"HTTP",
-        "messagePerRequest":false
+        "automaticDateParsing": True,
+        "multilineProcessingEnabled": True,
+        "useAutolineMatching": True,
+        "forceTimeZone": False,
+        "messagePerRequest": False
     }
 }
