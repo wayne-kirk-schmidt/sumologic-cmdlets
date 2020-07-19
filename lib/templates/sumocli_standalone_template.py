@@ -29,8 +29,6 @@ import os
 import sys
 import argparse
 import http
-import re
-import time
 import requests
 sys.dont_write_bytecode = 1
 
@@ -45,50 +43,13 @@ PARSER.add_argument("-k", metavar='<client>', dest='MY_CLIENT', \
                     help="set key (format: <site>_<orgid>) ")
 PARSER.add_argument("-e", metavar='<endpoint>', default='us2', dest='MY_ENDPOINT', \
                     help="set endpoint (format: <endpoint>) ")
-PARSER.add_argument("-q", metavar='<query>', dest='MY_QUERY', help="set query_content")
-PARSER.add_argument("-r", metavar='<range>', dest='MY_RANGE', default='1h', \
-                    help="set query_range")
-PARSER.add_argument("-o", metavar='<fmt>', default="csv", dest='OUT_FORMAT', \
-                    help="set query_output (values: txt, csv)")
 PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
                     dest='VERBOSE', help="increase verbosity")
 
 ARGS = PARSER.parse_args()
 
-SEC_M = 1000
-MIN_S = 60
-HOUR_M = 60
-DAY_H = 24
-WEEK_D = 7
-
 LIMIT = 10000
 LONGQUERY_LIMIT = 100
-
-DEFAULT_QUERY = '''
-_index=sumologic_volume
-| count by _sourceCategory
-'''
-
-QUERY_EXT = '.sqy'
-
-CSV_SEP = ','
-TAB_SEP = '\t'
-EOL_SEP = '\n'
-
-MY_SEP = CSV_SEP
-if ARGS.OUT_FORMAT == 'txt':
-    MS_SEP = TAB_SEP
-
-NOW_TIME = int(time.time()) * SEC_M
-
-TIME_TABLE = dict()
-TIME_TABLE["s"] = SEC_M
-TIME_TABLE["m"] = TIME_TABLE["s"] * MIN_S
-TIME_TABLE["h"] = TIME_TABLE["m"] * HOUR_M
-TIME_TABLE["d"] = TIME_TABLE["h"] * DAY_H
-TIME_TABLE["w"] = TIME_TABLE["d"] * WEEK_D
-
-TIME_PARAMS = dict()
 
 if ARGS.MY_SECRET:
     (MY_APINAME, MY_APISECRET) = ARGS.MY_SECRET.split(':')
@@ -126,6 +87,8 @@ def main():
     """
 
     source = SumoApiClient(SUMO_UID, SUMO_KEY, SUMO_END)
+    if ARGS.verbose:
+        print(source)
 
 ### class ###
 class SumoApiClient():

@@ -1,0 +1,11 @@
+{
+    "api.version": "v1",
+    "source":{
+        "name":"SLC_NAME",
+        "description":"SLC_DESCRIPTION",
+        "category":"SLC_SRC_CATEGORY",
+        "encoding":"UTF-8",
+        "sourceType":"HTTP",
+        "messagePerRequest":false
+    }
+}

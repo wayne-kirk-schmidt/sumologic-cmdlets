@@ -1,0 +1,12 @@
+{
+    "api.version":"v1",
+    "collector":{
+        "name":"SUMO_LOGIC_CLI_NAME",
+        "timeZone":"Etc/UTC",
+        "fields":{
+
+        },
+        "collectorType":"Hosted",
+        "collectorVersion":""
+    }
+}
