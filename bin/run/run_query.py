@@ -43,7 +43,7 @@ PARSER.add_argument("-a", metavar='<secret>', dest='MY_SECRET', \
                     help="set api (format: <key>:<secret>) ")
 PARSER.add_argument("-k", metavar='<client>', dest='MY_CLIENT', \
                     help="set key (format: <site>_<orgid>) ")
-PARSER.add_argument("-e", metavar='<endpoint>', default='us2', dest='MY_ENDPOINT', \
+PARSER.add_argument("-e", metavar='<endpoint>', dest='MY_ENDPOINT', \
                     help="set endpoint (format: <endpoint>) ")
 PARSER.add_argument("-q", metavar='<query>', dest='MY_QUERY', help="set query_content")
 PARSER.add_argument("-r", metavar='<range>', dest='MY_RANGE', default='1h', \
@@ -158,8 +158,11 @@ def write_query_output(header_output, query_number):
     output_file = ext_sep.join((querytag, str(number), extension))
     output_target = os.path.join(output_dir, output_file)
 
-    if ARGS.VERBOSE > 7:
+    if ARGS.VERBOSE > 3:
         print(output_target)
+
+    if ARGS.VERBOSE > 2:
+        print(header_output)
 
     file_object = open(output_target, "w")
     file_object.write(header_output + '\n' )
@@ -298,7 +301,6 @@ class SumoApiClient():
         self.session.headers = {'content-type': 'application/json', \
             'accept': 'application/json'}
         self.endpoint = 'https://api.' + region + '.sumologic.com/api'
-        print(self.endpoint)
         cookiejar = http.cookiejar.FileCookieJar(cookieFile)
         self.session.cookies = cookiejar
 
