@@ -95,11 +95,13 @@ if ARGS.MY_SECRET:
     os.environ['SUMO_UID'] = MY_APINAME
     os.environ['SUMO_KEY'] = MY_APISECRET
 
+QUERY_TAG = os.environ['SUMO_LOC'] + '_' + os.environ['SUMO_ORG']
+
 if ARGS.MY_CLIENT:
     (MY_DEPLOYMENT, MY_ORGID) = ARGS.MY_CLIENT.split('_')
     os.environ['SUMO_LOC'] = MY_DEPLOYMENT
     os.environ['SUMO_ORG'] = MY_ORGID
-    os.environ['SUMO_TAG'] = ARGS.MY_CLIENT
+    QUERY_TAG = ARGS.MY_CLIENT
 
 if ARGS.MY_ENDPOINT:
     os.environ['SUMO_END'] = ARGS.MY_ENDPOINT
@@ -136,6 +138,8 @@ def main():
         query_data = collect_contents(query_item)
         query_data = tailor_queries(query_data)
         header_output = run_sumo_query(source, query_data, time_params)
+        if ARGS.VERBOSE > 7:
+            print('RUN_QUERY.output: {}'.format(header_output))
         write_query_output(header_output, counter)
         counter += 1
 
@@ -146,19 +150,19 @@ def write_query_output(header_output, query_number):
 
     ext_sep = '.'
 
-    querytag = ARGS.MY_CLIENT
+    querytag = QUERY_TAG
     extension = ARGS.OUT_FORMAT
     number = '{:03d}'.format(query_number)
 
-    output_dir = '/tmp'
+    output_dir = '/var/tmp'
     output_file = ext_sep.join((querytag, str(number), extension))
     output_target = os.path.join(output_dir, output_file)
 
-    if ARGS.VERBOSE > 1:
+    if ARGS.VERBOSE > 7:
         print(output_target)
 
     file_object = open(output_target, "w")
-    file_object.write(header_output)
+    file_object.write(header_output + '\n' )
     file_object.close()
 
 def tailor_queries(query_item):
@@ -235,21 +239,23 @@ def run_sumo_query(source, query, time_params):
 
     query_job = source.search_job(query, time_params)
     query_jobid = query_job["id"]
+    if ARGS.VERBOSE > 5:
+        print('RUN_QUERY.job: {}'.format(query_job))
+        print('RUN_QUERY.jobid: {}'.format(query_jobid))
 
     (query_status, num_records, iterations) = source.search_job_records_tally(query_jobid)
     if ARGS.VERBOSE > 5:
-        print('{}'.format(query_jobid))
-        print('{}'.format(query_status))
-        print('{}'.format(num_records))
-        print('{}'.format(iterations))
+        print('RUN_QUERY.status: {}'.format(query_status))
+        print('RUN_QUERY.records: {}'.format(num_records))
+        print('RUN_QUERY.iterations: {}'.format(iterations))
 
     query_records = source.search_job_records(query_jobid, LIMIT, 0)
-    if ARGS.VERBOSE > 7:
-        print(query_records)
+    if ARGS.VERBOSE > 8:
+        print('RUN_QUERY.records: {}'.format(query_records))
 
     query_messages = source.search_job_messages(query_jobid, LIMIT, 0)
-    if ARGS.VERBOSE > 7:
-        print(query_messages)
+    if ARGS.VERBOSE > 8:
+        print('RUN_QUERY.messages: {}'.format(query_messages))
 
     header_list = list()
     record_body_list = list()
@@ -292,6 +298,7 @@ class SumoApiClient():
         self.session.headers = {'content-type': 'application/json', \
             'accept': 'application/json'}
         self.endpoint = 'https://api.' + region + '.sumologic.com/api'
+        print(self.endpoint)
         cookiejar = http.cookiejar.FileCookieJar(cookieFile)
         self.session.cookies = cookiejar
 
@@ -374,6 +381,7 @@ class SumoApiClient():
         """
         Find out search job records
         """
+
         query_output = self.search_job_status(query_jobid)
         query_status = query_output['state']
         num_records = query_output['recordCount']
@@ -385,6 +393,7 @@ class SumoApiClient():
             num_records = query_output['recordCount']
             time.sleep(1)
             iterations += 1
+
         return (query_status, num_records, iterations)
 
     def calculate_and_fetch_records(self, query_jobid, num_records):
