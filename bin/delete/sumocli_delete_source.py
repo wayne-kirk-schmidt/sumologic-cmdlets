@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: list_roles a cmdlet within the sumocli that retrieves information
+Exaplanation: delete_source a sumocli cmdlet that removes a source
 
 Usage:
-   $ python  listt_roles [ options ]
+   $ python  delete_source [ options ]
 
 Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumocli_list_roles
+    @name           sumocli_delete_source
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
@@ -34,8 +34,9 @@ sys.dont_write_bytecode = 1
 
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
-list_roles is a Sumo Logic cli cmdlet retrieving information about roles
+delete_source is a Sumo Logic cli cmdlet deleting a specific source
 """)
+
 
 PARSER.add_argument("-a", metavar='<secret>', dest='MY_SECRET', \
                     help="set api (format: <key>:<secret>) ")
@@ -43,16 +44,12 @@ PARSER.add_argument("-k", metavar='<client>', dest='MY_CLIENT', \
                     help="set key (format: <site>_<orgid>) ")
 PARSER.add_argument("-e", metavar='<endpoint>', dest='MY_ENDPOINT', \
                     help="set endpoint (format: <endpoint>) ")
-PARSER.add_argument("-f", metavar='<fmt>', default="list", dest='oformat', \
-                    help="Specify output format (default = list )")
-PARSER.add_argument("-m", default=0, metavar='<myself>', \
-                    dest='myself', help="provide specific id to lookup")
-PARSER.add_argument("-p", default=0, metavar='<parent>', \
+PARSER.add_argument("-m", default=0, metavar='<myselfid>', \
+                    dest='myselfid', help="provide specific id to lookup")
+PARSER.add_argument("-p", default=0, metavar='<parentid>', \
                     dest='parentid', help="provide parent id to locate with")
 PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
                     dest='verbose', help="Increase verbosity")
-PARSER.add_argument("-n", "--noexec", action='store_true', \
-                    help="Print but do not execute commands")
 
 ARGS = PARSER.parse_args()
 
@@ -72,19 +69,31 @@ if ARGS.MY_ENDPOINT:
 else:
     os.environ['SUMO_END'] = os.environ['SUMO_LOC']
 
+if ARGS.myselfid:
+    os.environ['MYSELFID'] = ARGS.myselfid
+
+if ARGS.parentid:
+    os.environ['PARENTID'] = ARGS.parentid
+
 try:
     SUMO_UID = os.environ['SUMO_UID']
     SUMO_KEY = os.environ['SUMO_KEY']
     SUMO_LOC = os.environ['SUMO_LOC']
     SUMO_ORG = os.environ['SUMO_ORG']
     SUMO_END = os.environ['SUMO_END']
+    MYSELFID = os.environ['MYSELFID']
+    PARENTID = os.environ['PARENTID']
+
 except KeyError as myerror:
     print('Environment Variable Not Set :: {} '.format(myerror.args[0]))
+
+BACKUP_DIR = '/var/tmp'
+BACKUP_FILE = SUMO_END + '_' + SUMO_ORG + '.' + MYSELFID + '.' + 'json'
+BACKUP_TARGET = os.path.join(BACKUP_DIR, BACKUP_FILE)
 
 PP = pprint.PrettyPrinter(indent=4)
 
 ### beginning ###
-
 def main():
     """
     Setup the Sumo API connection, using the required tuple of region, id, and key.
@@ -98,33 +107,26 @@ def run_sumo_cmdlet(source):
     This will collect the information on object for sumologic and then collect that into a list.
     the output of the action will provide a tuple of the orgid, objecttype, and id
     """
-    target_object = "role"
+    target_object = "source"
     target_dict = dict()
     target_dict["orgid"] = SUMO_ORG
     target_dict[target_object] = dict()
 
-    src_items = source.get_roles()
-
+    src_items = source.get_sources(PARENTID)
     for src_item in src_items:
-        if (str(src_item['id']) == str(ARGS.myself) or ARGS.myself == 0):
+        if str(src_item['id']) == str(MYSELFID):
             target_dict[target_object][src_item['id']] = dict()
             target_dict[target_object][src_item['id']].update({'parent' : SUMO_ORG})
             target_dict[target_object][src_item['id']].update({'id' : src_item['id']})
             target_dict[target_object][src_item['id']].update({'name' : src_item['name']})
             target_dict[target_object][src_item['id']].update({'dump' : src_item})
 
-    if ARGS.oformat == "sum":
-        print('Orgid: {} {} number: {}'.format(SUMO_ORG, \
-            target_object, len(target_dict[target_object])))
+    with open(BACKUP_TARGET, 'w') as outputobject:
+        outputobject.write(json.dumps(target_dict, indent=4))
 
-    if ARGS.oformat == "list":
-        for key in sorted(target_dict[target_object].keys()):
-            print('{},{},{}'.format(SUMO_ORG, target_object, key))
+    src_items = source.delete_source(PARENTID, MYSELFID)
 
-    if ARGS.oformat == "json":
-        print(json.dumps(target_dict, indent=4))
-
-### class ###
+#### class ###
 class SumoApiClient():
     """
     This is defined SumoLogic API Client
@@ -187,25 +189,51 @@ class SumoApiClient():
         response.raise_for_status()
         return response
 
-### class ###
+#### class ###
 ### methods ###
 
-    def get_roles(self):
+    def get_collectors(self):
         """
-        Using an HTTP client, this uses a GET to retrieve all role information.
+        Using an HTTP client, this uses a GET to retrieve all collectors information.
         """
-        url = "/v1/roles"
+        url = "/v1/collectors"
         body = self.get(url).text
-        results = json.loads(body)['data']
+        results = json.loads(body)['collectors']
         return results
 
-    def get_role(self, myself):
+    def get_collector(self, myselfid):
         """
-        Using an HTTP client, this uses a GET to retrieve single role information.
+        Using an HTTP client, this uses a GET to retrieve single collector information.
         """
-        url = "/v1/roles/" + str(myself)
+        url = "/v1/collectors/" + str(myselfid)
         body = self.get(url).text
-        results = json.loads(body)['data']
+        results = json.loads(body)['collector']
+        return results
+
+    def get_sources(self, parentid):
+        """
+        Using an HTTP client, this uses a GET to retrieve for all sources for a given collector
+        """
+        url = "/v1/collectors/" + str(parentid) + '/sources'
+        body = self.get(url).text
+        results = json.loads(body)['sources']
+        return results
+
+    def get_source(self, parentid, myselfid):
+        """
+        Using an HTTP client, this uses a GET to retrieve a given source for a given collector
+        """
+        url = "/v1/collectors/" + str(parentid) + '/sources/' + str(myselfid)
+        body = self.get(url).text
+        results = json.loads(body)['sources']
+        return results
+
+    def delete_source(self, parentid, myselfid):
+        """
+        Using an HTTP client, this deletes a source from a collector
+        """
+        url = "/v1/collectors/" + str(parentid) + "/sources/" + str(myselfid)
+        results = self.delete(url)
         return results
 
 ### methods ###

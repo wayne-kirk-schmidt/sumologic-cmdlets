@@ -47,7 +47,7 @@ PARSER.add_argument("-f", metavar='<fmt>', default="list", dest='oformat', \
                     help="Specify output format (default = list )")
 PARSER.add_argument("-m", default=0, metavar='<myselfid>', \
                     dest='myselfid', help="provide specific id to lookup")
-PARSER.add_argument("-p", type=int, default=0, metavar='<parentid>', \
+PARSER.add_argument("-p", default=0, metavar='<parentid>', \
                     dest='parentid', help="provide parent id to locate with")
 PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
                     dest='verbose', help="Increase verbosity")
