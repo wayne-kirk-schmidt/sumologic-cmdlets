@@ -137,8 +137,11 @@ def main():
     for query_item in query_list:
         query_data = collect_contents(query_item)
         query_data = tailor_queries(query_data)
+        if ARGS.VERBOSE > 4:
+            print('RUN_QUERY.query_item: {}'.format(query_item))
+            print('RUN_QUERY.query_data: {}'.format(query_data))
         header_output = run_sumo_query(source, query_data, time_params)
-        if ARGS.VERBOSE > 7:
+        if ARGS.VERBOSE > 8:
             print('RUN_QUERY.output: {}'.format(header_output))
         write_query_output(header_output, counter)
         counter += 1
@@ -158,11 +161,11 @@ def write_query_output(header_output, query_number):
     output_file = ext_sep.join((querytag, str(number), extension))
     output_target = os.path.join(output_dir, output_file)
 
-    if ARGS.VERBOSE > 3:
-        print(output_target)
-
     if ARGS.VERBOSE > 2:
         print(header_output)
+
+    if ARGS.VERBOSE > 3:
+        print(output_target)
 
     file_object = open(output_target, "w")
     file_object.write(header_output + '\n' )
@@ -242,22 +245,21 @@ def run_sumo_query(source, query, time_params):
 
     query_job = source.search_job(query, time_params)
     query_jobid = query_job["id"]
-    if ARGS.VERBOSE > 5:
-        print('RUN_QUERY.job: {}'.format(query_job))
+    if ARGS.VERBOSE > 4:
         print('RUN_QUERY.jobid: {}'.format(query_jobid))
 
     (query_status, num_records, iterations) = source.search_job_records_tally(query_jobid)
-    if ARGS.VERBOSE > 5:
+    if ARGS.VERBOSE > 4:
         print('RUN_QUERY.status: {}'.format(query_status))
         print('RUN_QUERY.records: {}'.format(num_records))
         print('RUN_QUERY.iterations: {}'.format(iterations))
 
     query_records = source.search_job_records(query_jobid, LIMIT, 0)
-    if ARGS.VERBOSE > 8:
+    if ARGS.VERBOSE > 6:
         print('RUN_QUERY.records: {}'.format(query_records))
 
     query_messages = source.search_job_messages(query_jobid, LIMIT, 0)
-    if ARGS.VERBOSE > 8:
+    if ARGS.VERBOSE > 6:
         print('RUN_QUERY.messages: {}'.format(query_messages))
 
     header_list = list()
@@ -383,7 +385,6 @@ class SumoApiClient():
         """
         Find out search job records
         """
-
         query_output = self.search_job_status(query_jobid)
         query_status = query_output['state']
         num_records = query_output['recordCount']
