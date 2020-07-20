@@ -128,7 +128,9 @@ def run_sumo_cmdlet(source):
 
     if ARGS.oformat == "list":
         for key in sorted(target_dict[target_object].keys()):
-            print('{},{},{}'.format(SUMO_ORG, target_object, key))
+            c_name = target_dict[target_object][key]['name']
+            c_id = target_dict[target_object][key]['id']
+            print('{},{},{},{}'.format(SUMO_ORG, target_object, c_name, c_id))
 
     if ARGS.oformat == "json":
         print(json.dumps(target_dict, indent=4))
