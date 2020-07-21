@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: create_source a sumocli cmdlet creating source
+Exaplanation: delete_folder a sumocli cmdlet creating a folder
 
 Usage:
-   $ python  create_source [ options ]
+   $ python  delete_folder [ options ]
 
 Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumocli_create_source
+    @name           sumocli_delete_folder
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
@@ -35,7 +35,7 @@ sys.dont_write_bytecode = 1
 
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
-create_source is a Sumo Logic cli cmdlet creating a specific source
+delete_folder is a Sumo Logic cli cmdlet creating a specific folder
 """)
 
 
@@ -76,17 +76,25 @@ if ARGS.MY_ENDPOINT:
 else:
     os.environ['SUMO_END'] = os.environ['SUMO_LOC']
 
+if ARGS.myselfid:
+    os.environ['MYSELFID'] = ARGS.myselfid
+
 try:
     SUMO_UID = os.environ['SUMO_UID']
     SUMO_KEY = os.environ['SUMO_KEY']
     SUMO_LOC = os.environ['SUMO_LOC']
     SUMO_ORG = os.environ['SUMO_ORG']
     SUMO_END = os.environ['SUMO_END']
+    MYSELFID = os.environ['MYSELFID']
 except KeyError as myerror:
     print('Environment Variable Not Set :: {} '.format(myerror.args[0]))
 
 PP = pprint.PrettyPrinter(indent=4)
 
+BACKUP_DIR = '/var/tmp'
+BACKUP_FILE = SUMO_END + '_' + SUMO_ORG + '.' + MYSELFID + '.' + 'json'
+BACKUP_TARGET = os.path.join(BACKUP_DIR, BACKUP_FILE)
+ 
 ### beginning ###
 def main():
     """
@@ -101,27 +109,23 @@ def run_sumo_cmdlet(source):
     This will collect the information on object for sumologic and then collect that into a list.
     the output of the action will provide a tuple of the orgid, objecttype, and id
     """
-    target_object = "source"
+    target_object = "folders"
     target_dict = dict()
     target_dict["orgid"] = SUMO_ORG
     target_dict[target_object] = dict()
 
-    src_items = source.create_source(ARGS.parentid)
-    target_id = src_items['source']['id']
-    src_items = source.get_sources(ARGS.parentid)
-    for src_item in src_items:
-        if str(src_item['id']) == str(target_id):
-            target_dict[target_object][src_item['id']] = dict()
-            target_dict[target_object][src_item['id']].update({'parent' : SUMO_ORG})
-            target_dict[target_object][src_item['id']].update({'id' : src_item['id']})
-            target_dict[target_object][src_item['id']].update({'name' : src_item['name']})
-            target_dict[target_object][src_item['id']].update({'dump' : src_item})
+    src_item = source.get_folder(MYSELFID)
+    if str(src_item['id']) == str(MYSELFID):
+        target_dict[src_item['id']] = dict()
+        target_dict[src_item['id']].update({'parent' : SUMO_ORG})
+        target_dict[src_item['id']].update({'id' : src_item['id']})
+        target_dict[src_item['id']].update({'name' : src_item['name']})
+        target_dict[src_item['id']].update({'dump' : src_item})
 
-    if ARGS.outputfile == 'stdout':
-        print(json.dumps(target_dict, indent=4))
-    else:
-        with open(ARGS.outputfile, 'w') as outputobject:
-            outputobject.write(json.dumps(target_dict, indent=4))
+    with open(BACKUP_TARGET, 'w') as outputobject:
+        outputobject.write(json.dumps(target_dict, indent=4))
+
+    ### src_items = source.delete_folder(MYSELFID)
 
 #### class ###
 class SumoApiClient():
@@ -189,62 +193,14 @@ class SumoApiClient():
 #### class ###
 ### methods ###
 
-    def get_collectors(self):
-        """
-        Using an HTTP client, this uses a GET to retrieve all collectors information.
-        """
-        url = "/v1/collectors"
-        body = self.get(url).text
-        results = json.loads(body)['collectors']
-        return results
-
-    def get_collector(self, myselfid):
-        """
-        Using an HTTP client, this uses a GET to retrieve single collector information.
-        """
-        url = "/v1/collectors/" + str(myselfid)
-        body = self.get(url).text
-        results = json.loads(body)['collector']
-        return results
-
-    def get_sources(self, parentid):
-        """
-        Using an HTTP client, this uses a GET to retrieve for all sources for a given collector
-        """
-        url = "/v1/collectors/" + str(parentid) + '/sources'
-        body = self.get(url).text
-        results = json.loads(body)['sources']
-        return results
-
-    def get_source(self, parentid, myselfid):
-        """
-        Using an HTTP client, this uses a GET to retrieve a given source for a given collector
-        """
-        url = "/v1/collectors/" + str(parentid) + '/sources/' + str(myselfid)
-        body = self.get(url).text
-        results = json.loads(body)['sources']
-        return results
-
-    def create_source(self, parentid):
-        """
-        Using an HTTP client, this creates a source for a collector
-        """
-        object_type = 'source'
+    def create_folder(self, folder_name, parent_id, adminmode=False):
+        headers = {'isAdminMode': str(adminmode)}
+        object_type = 'folder'
         jsonpayload = {
-            "api.version": "v1",
-            "source":{
-                "name": object_type + '_' + "SLC_NAME",
-                "description": object_type + '_' + "SLC_DESCRIPTION",
-                "category": object_type + '_' + "SLC_SRC_CATEGORY",
-                "encoding":"UTF-8",
-                "sourceType":"HTTP",
-                "automaticDateParsing": True,
-                "multilineProcessingEnabled": True,
-                "useAutolineMatching": True,
-                "forceTimeZone": False,
-                "messagePerRequest": False
-            }
+            'name': object_type + '_' + 'PERSONAL_FOLDER', 
+            'parentId': str(parent_id)
         }
+
         if ARGS.jsonfile:
             fileobject = open(ARGS.jsonfile, "r")
             jsonpayload = ast.literal_eval((fileobject.read()))
@@ -255,13 +211,33 @@ class SumoApiClient():
         if ARGS.overrides:
             for override in ARGS.overrides:
                 or_key, or_value = override.split('=')
-                jsonpayload[object_type][or_key] = or_value
+                jsonpayload[or_key] = or_value
 
         if ARGS.verbose:
             print(jsonpayload)
 
-        url = "/v1/collectors/" + str(parentid) + "/sources"
-        body = self.post(url, jsonpayload).text
+        url = '/v2/content/folders'
+        body = self.post(url, jsonpayload, headers=headers).text
+        results = json.loads(body)
+        return results
+
+    def delete_folder (self, myselfid, adminmode=False):
+        headers = {'isAdminMode': str(adminmode).lower()}
+        url = '/v2/content/folders/' + str(myselfid)
+        body = self.delete(url, headers=headers).text
+        results = json.loads(body)
+
+    def get_folder(self, myselfid, adminmode=False):
+        headers = {'isAdminMode': str(adminmode).lower()}
+        url = '/v2/content/folders/' + str(myselfid)
+        body = self.get(url, headers=headers).text
+        results = json.loads(body)
+        return results
+
+    def get_personal_folder(self):
+        r = self.get('/v2/content/folders/personal')
+        url = '/v2/content/folders/personal'
+        body = self.get(url).text
         results = json.loads(body)
         return results
 

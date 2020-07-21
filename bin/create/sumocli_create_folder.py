@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: create_folders a sumocli cmdlet creating field extraction rules
+Exaplanation: create_folder a sumocli cmdlet creating a folder
 
 Usage:
-   $ python  create_folders [ options ]
+   $ python  create_folder [ options ]
 
 Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumocli_create_folders
+    @name           sumocli_create_folder
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
@@ -35,7 +35,7 @@ sys.dont_write_bytecode = 1
 
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
-create_folders is a Sumo Logic cli cmdlet creating a specific folder
+create_folder is a Sumo Logic cli cmdlet creating a specific folder
 """)
 
 
@@ -116,7 +116,6 @@ def run_sumo_cmdlet(source):
     sl_parent = PARENTID
     sl_enabled = False
     src_items = source.create_folder(sl_name, sl_parent, sl_enabled)
-    sys.exit()
     target_id = src_items['id']
     src_item = source.get_folder(target_id)
     if str(src_item['id']) == str(target_id):
@@ -229,14 +228,14 @@ class SumoApiClient():
     def get_folder(self, folder_id, adminmode=False):
         headers = {'isAdminMode': str(adminmode).lower()}
         url = '/v2/content/folders/' + str(folder_id)
-        body = self.post(url, headers=headers).text
+        body = self.get(url, headers=headers).text
         results = json.loads(body)
         return results
 
     def get_personal_folder(self):
         r = self.get('/v2/content/folders/personal')
         url = '/v2/content/folders/personal'
-        body = self.post(url).text
+        body = self.get(url).text
         results = json.loads(body)
         return results
 

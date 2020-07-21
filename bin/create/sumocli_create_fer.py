@@ -101,15 +101,15 @@ def run_sumo_cmdlet(source):
     This will collect the information on object for sumologic and then collect that into a list.
     the output of the action will provide a tuple of the orgid, objecttype, and id
     """
-    target_object = "source"
+    target_object = "fer"
     target_dict = dict()
     target_dict["orgid"] = SUMO_ORG
     target_dict[target_object] = dict()
 
 ########
 
-    fer_name = SUMO_ORG + '_' + 'fer', 
-    fer_scope = SUMO_ORG + '_' + 'fer_data_source'
+    fer_name = SUMO_ORG + '_' + target_object, 
+    fer_scope = SUMO_ORG + '_' + target_object + '_' + 'data_source'
     fer_parse = 'parse "*" as my_payload'
     fer_enabled = False
     src_items = source.create_fer(fer_name, fer_scope, fer_parse, fer_enabled)
