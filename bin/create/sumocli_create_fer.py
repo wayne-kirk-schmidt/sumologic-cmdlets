@@ -108,16 +108,19 @@ def run_sumo_cmdlet(source):
 
 ########
 
-    src_items = source.create_fer(ARGS.parentid)
-    target_id = src_items['source']['id']
-    src_items = source.get_fer(ARGS.parentid)
-    for src_item in src_items:
-        if str(src_item['id']) == str(target_id):
-            target_dict[target_object][src_item['id']] = dict()
-            target_dict[target_object][src_item['id']].update({'parent' : SUMO_ORG})
-            target_dict[target_object][src_item['id']].update({'id' : src_item['id']})
-            target_dict[target_object][src_item['id']].update({'name' : src_item['name']})
-            target_dict[target_object][src_item['id']].update({'dump' : src_item})
+    fer_name = SUMO_ORG + '_' + 'fer', 
+    fer_scope = SUMO_ORG + '_' + 'fer_data_source'
+    fer_parse = 'parse "*" as my_payload'
+    fer_enabled = False
+    src_items = source.create_fer(fer_name, fer_scope, fer_parse, fer_enabled)
+    target_id = src_items['id']
+    src_item = source.get_fer(target_id)
+    if str(src_item['id']) == str(target_id):
+        target_dict[src_item['id']] = dict()
+        target_dict[src_item['id']].update({'parent' : SUMO_ORG})
+        target_dict[src_item['id']].update({'id' : src_item['id']})
+        target_dict[src_item['id']].update({'name' : src_item['name']})
+        target_dict[src_item['id']].update({'dump' : src_item})
 
     if ARGS.outputfile == 'stdout':
         print(json.dumps(target_dict, indent=4))
@@ -196,21 +199,33 @@ class SumoApiClient():
         r = self.get('/v1/extractionRules', params=params)
         return json.loads(r.text)
 
-    def get_fers_sync(self, limit=1000):
-        token = None
-        results = []
-        while True:
-            r = self.get_fers(limit=limit, token=token)
-            token = r['next']
-            results = results + r['data']
-            if token is None:
-                break
-        return results
+    def create_fer(self, fer_name, fer_scope, fer_parse_expression, fer_enabled=False):
+        object_type = 'fer'
+        jsonpayload = {
+            'name': object_type + 'OBJECT_NAME', 
+            'scope': object_type + '_' 'data_source', 
+            'parseExpression': 'parse "*" as my_payload', 
+            'enabled': fer_enabled
+        }
+        if ARGS.jsonfile:
+            fileobject = open(ARGS.jsonfile, "r")
+            jsonpayload = ast.literal_eval((fileobject.read()))
 
-    def create_fer(self, name, scope, parse_expression, enabled=False):
-        data = {'name': name, 'scope': scope, 'parseExpression': parse_expression, 'enabled': str(enabled).lower()}
-        r = self.post('/v1/extractionRules', data)
-        return json.loads(r.text)
+        if ARGS.verbose:
+            print(jsonpayload)
+
+        if ARGS.overrides:
+            for override in ARGS.overrides:
+                or_key, or_value = override.split('=')
+                jsonpayload[or_key] = or_value
+
+        if ARGS.verbose:
+            print(jsonpayload)
+
+        url = "/v1/extractionRules"
+        body = self.post(url, jsonpayload).text
+        results = json.loads(body)
+        return results
 
     def get_fer(self, item_id):
         r = self.get('/v1/extractionRules/' + str(item_id))
