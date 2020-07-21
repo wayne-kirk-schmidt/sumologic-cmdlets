@@ -1,3 +1,5 @@
+### collectors ###
+
     def get_collectors(self, limit=1000, offset=None):
         params = {'limit': limit, 'offset': offset}
         r = self.get('/v1/collectors', params)
@@ -29,6 +31,10 @@
     def delete_collector(self, collector_id):
         return self.delete('/v1/collectors/' + str(collector_id))
 
+### collectors ###
+
+### sources ###
+
     def sources(self, collector_id, limit=None, offset=None):
         params = {'limit': limit, 'offset': offset}
         r = self.get('/v1/collectors/' + str(collector_id) + '/sources', params)
@@ -48,6 +54,9 @@
     def delete_source(self, collector_id, source_id):
         return self.delete('/v1/collectors/' + str(collector_id) + '/sources/' + str(source_id))
 
+### sources ###
+
+### dashboards ###
     def dashboards(self, monitors=False):
         params = {'monitors': monitors}
         r = self.get('/v1/dashboards', params)
@@ -60,6 +69,10 @@
     def dashboard_data(self, dashboard_id):
         r = self.get('/v1/dashboards/' + str(dashboard_id) + '/data')
         return json.loads(r.text)['dashboardMonitorDatas']
+
+### dashboards ###
+
+### search_metrics ###
 
     def search_metrics(self, query, fromTime=None, toTime=None, requestedDataPoints=600, maxDataPoints=800):
         '''Perform a single Sumo metrics query'''
@@ -79,6 +92,10 @@
         r = self.post('/v1/metrics/results', data)
         return json.loads(r.text)
 
+### search_metrics ###
+
+### personal_folders ###
+
     def create_folder(self, folder_name, parent_id, adminmode=False):
         headers = {'isAdminMode': str(adminmode)}
         data = {'name': str(folder_name), 'parentId': str(parent_id)}
@@ -93,6 +110,10 @@
     def get_personal_folder(self):
         r = self.get('/v2/content/folders/personal')
         return json.loads(r.text)
+
+### personal_folders ###
+
+### global_folders ###
 
     def get_global_folder_job_status(self, job_id):
         r = self.get('/v2/content/folders/global/' + str(job_id) + '/status')
@@ -118,6 +139,10 @@
             return r
         else:
             return status
+
+### global_folders ###
+
+### admin_folders ###
 
     def get_admin_folder_job_status(self, job_id):
 
@@ -145,6 +170,10 @@
         else:
             return status
 
+### admin_folders ###
+
+### users ###
+
     def get_users(self, limit=1000, token=None, sort_by='lastName', email=None):
         params = {'limit': limit, 'token': token, 'sortBy': sort_by, 'email':email }
         r = self.get('/v1/users', params=params)
@@ -159,6 +188,10 @@
         r = self.post('/v1/users', data)
         return json.loads(r.text)
 
+### users ###
+
+### connections ###
+
     def get_connections(self, limit=1000, token=''):
         params = {'limit': limit, 'token': token}
         r = self.get('/v1/connections', params=params)
@@ -172,6 +205,10 @@
             token = r['next']
             results = results + r['data']
         return results
+
+### connections ###
+
+### fers ###
 
     def get_fers(self, limit=1000, token=''):
         params = {'limit': limit, 'token': token}
@@ -206,3 +243,5 @@
     def delete_fer(self, item_id):
         r = self.delete('/v1/extractionRules/' + str(item_id))
         return r.text
+
+### fers ###
