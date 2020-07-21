@@ -229,12 +229,13 @@ class SumoApiClient():
         """
         Using an HTTP client, this creates a source for a collector
         """
-        sourcedata = {
+        object_type = 'source'
+        jsonpayload = {
             "api.version": "v1",
             "source":{
-                "name":"SLC_NAME",
-                "description":"SLC_DESCRIPTION",
-                "category":"SLC_SRC_CATEGORY",
+                "name": object_type + '_' + "SLC_NAME",
+                "description": object_type + '_' + "SLC_DESCRIPTION",
+                "category": object_type + '_' + "SLC_SRC_CATEGORY",
                 "encoding":"UTF-8",
                 "sourceType":"HTTP",
                 "automaticDateParsing": True,
@@ -246,21 +247,21 @@ class SumoApiClient():
         }
         if ARGS.jsonfile:
             fileobject = open(ARGS.jsonfile, "r")
-            sourcedata = ast.literal_eval((fileobject.read()))
+            jsonpayload = ast.literal_eval((fileobject.read()))
 
         if ARGS.verbose:
-            print(sourcedata)
+            print(jsonpayload)
 
         if ARGS.overrides:
             for override in ARGS.overrides:
                 or_key, or_value = override.split('=')
-                sourcedata['source'][or_key] = or_value
+                jsonpayload[object_type][or_key] = or_value
 
         if ARGS.verbose:
-            print(sourcedata)
+            print(jsonpayload)
 
         url = "/v1/collectors/" + str(parentid) + "/sources"
-        body = self.post(url, sourcedata).text
+        body = self.post(url, jsonpayload).text
         results = json.loads(body)
         return results
 
