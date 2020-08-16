@@ -1,8 +1,8 @@
-SumoLogic Cmdlets
-=================
+Sumo Logic Cmdlets
+==================
 
-SumoLogic Cmdlets are small scriptlets to get, create, run, list, query, and delete sumologic objects.
-They are designed to be put into Ansible, Chef or other DevOps tools to promote "Sumologic Config as code"
+Sumo=Logic Cmdlets are small scriptlets to get, create, run, list, query, and delete sumologic objects.
+They are designed to be put into Ansible, Chef or other DevOps tools to promote "Sumo Logic Config as code"
 
 Installing the Scripts
 =======================
@@ -30,10 +30,10 @@ The steps are as follows:
     
         git clone git@github.com:wks-sumo-logic/sumologic-cmdlets.git
 
-    This will create a new folder sumologic-toshokan
+    This will create a new folder
     
-    6. Change into the sumologic-cmdlets folder. Type the following to install all the package dependencies 
-       (this may take a while as this will download all of the libraries that sumotoolbox uses):
+    6. Change into this folder. Type the following to install all the package dependencies 
+       (this may take a while as this will download all of the libraries it uses):
 
         pipenv install
         
