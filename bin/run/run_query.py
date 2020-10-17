@@ -254,35 +254,35 @@ def run_sumo_query(source, query, time_params):
         print('RUN_QUERY.records: {}'.format(num_records))
         print('RUN_QUERY.iterations: {}'.format(iterations))
 
-    query_records = source.search_job_records(query_jobid, LIMIT, 0)
-    if ARGS.VERBOSE > 6:
-        print('RUN_QUERY.records: {}'.format(query_records))
-
-    query_messages = source.search_job_messages(query_jobid, LIMIT, 0)
-    if ARGS.VERBOSE > 6:
-        print('RUN_QUERY.messages: {}'.format(query_messages))
-
     header_list = list()
     record_body_list = list()
 
-    fields = query_records["fields"]
-    for field in fields:
-        fieldname = field["name"]
-        header_list.append(fieldname)
+    for my_counter in range(0, iterations, 1):
+        my_limit = LIMIT
+        my_offset = ( my_limit * my_counter )
 
-    records = query_records["records"]
-    for record in records:
-        record_line_list = list()
-        for field in fields:
-            fieldname = field["name"]
-            recordname = str(record["map"][fieldname])
-            record_line_list.append(recordname)
-            record_line = MY_SEP.join(record_line_list)
-        record_body_list.append(record_line)
+        query_records = source.search_job_records(query_jobid, my_limit, my_offset)
+        query_messages = source.search_job_messages(query_jobid, my_limit, my_offset)
+
+        if my_counter == 0:
+            fields = query_records["fields"]
+            for field in fields:
+                fieldname = field["name"]
+                header_list.append(fieldname)
+
+        records = query_records["records"]
+        for record in records:
+            record_line_list = list()
+            for field in fields:
+                fieldname = field["name"]
+                recordname = str(record["map"][fieldname])
+                record_line_list.append(recordname)
+                record_line = MY_SEP.join(record_line_list)
+            record_body_list.append(record_line)
 
     header = MY_SEP.join(header_list)
-    output = EOL_SEP.join(record_body_list)
 
+    output = EOL_SEP.join(record_body_list)
     header_output = EOL_SEP.join((header, output))
 
     return header_output
