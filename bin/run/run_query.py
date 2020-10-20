@@ -39,17 +39,17 @@ PARSER = argparse.ArgumentParser(description="""
 run_query is a Sumo Logic cli cmdlet managing queries
 """)
 
-PARSER.add_argument("-a", metavar='<secret>', dest='MY_SECRET', \
-                    help="set api (format: <key>:<secret>) ")
-PARSER.add_argument("-k", metavar='<client>', dest='MY_CLIENT', \
-                    help="set key (format: <site>_<orgid>) ")
+PARSER.add_argument("-a", metavar='<secret>', dest='MY_APIKEY', \
+                    help="set query authkey (format: <key>:<secret>) ")
 PARSER.add_argument("-e", metavar='<endpoint>', dest='MY_ENDPOINT', \
-                    help="set endpoint (format: <endpoint>) ")
-PARSER.add_argument("-q", metavar='<query>', dest='MY_QUERY', help="set query_content")
+                    help="set query endpoint (format: <dep>_<orgid>) ")
+PARSER.add_argument("-t", metavar='<targetorg>', dest='MY_TARGET', \
+                    help="set query target  (format: <dep>_<orgid>) ")
+PARSER.add_argument("-q", metavar='<query>', dest='MY_QUERY', help="set query content")
 PARSER.add_argument("-r", metavar='<range>', dest='MY_RANGE', default='1h', \
-                    help="set query_range")
+                    help="set query range")
 PARSER.add_argument("-o", metavar='<fmt>', default="csv", dest='OUT_FORMAT', \
-                    help="set query_output (values: txt, csv)")
+                    help="set query output (values: txt, csv)")
 PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
                     dest='VERBOSE', help="increase verbosity")
 
@@ -90,30 +90,32 @@ TIME_TABLE["w"] = TIME_TABLE["d"] * WEEK_D
 
 TIME_PARAMS = dict()
 
-if ARGS.MY_SECRET:
-    (MY_APINAME, MY_APISECRET) = ARGS.MY_SECRET.split(':')
+if ARGS.MY_APIKEY:
+    (MY_APINAME, MY_APISECRET) = ARGS.MY_APIKEY.split(':')
     os.environ['SUMO_UID'] = MY_APINAME
     os.environ['SUMO_KEY'] = MY_APISECRET
 
-QUERY_TAG = os.environ['SUMO_LOC'] + '_' + os.environ['SUMO_ORG']
-
-if ARGS.MY_CLIENT:
-    (MY_DEPLOYMENT, MY_ORGID) = ARGS.MY_CLIENT.split('_')
+if ARGS.MY_ENDPOINT:
+    (MY_DEPLOYMENT, MY_ORGID) = ARGS.MY_ENDPOINT.split('_')
     os.environ['SUMO_LOC'] = MY_DEPLOYMENT
     os.environ['SUMO_ORG'] = MY_ORGID
-    QUERY_TAG = ARGS.MY_CLIENT
+    QUERY_TAG = ARGS.MY_ENDPOINT
+    os.environ['SUMO_END'] = MY_DEPLOYMENT
 
-if ARGS.MY_ENDPOINT:
-    os.environ['SUMO_END'] = ARGS.MY_ENDPOINT
-else:
-    os.environ['SUMO_END'] = os.environ['SUMO_LOC']
+if ARGS.MY_TARGET:
+    (MY_DEPLOYMENT, MY_ORGID) = ARGS.MY_TARGET.split('_')
+    os.environ['SUMO_LOC'] = MY_DEPLOYMENT
+    os.environ['SUMO_ORG'] = MY_ORGID
+    QUERY_TAG = ARGS.MY_TARGET
 
 try:
+
     SUMO_UID = os.environ['SUMO_UID']
     SUMO_KEY = os.environ['SUMO_KEY']
+    SUMO_END = os.environ['SUMO_END']
     SUMO_LOC = os.environ['SUMO_LOC']
     SUMO_ORG = os.environ['SUMO_ORG']
-    SUMO_END = os.environ['SUMO_END']
+
 except KeyError as myerror:
     print('Environment Variable Not Set :: {} '.format(myerror.args[0]))
 
@@ -180,6 +182,7 @@ def tailor_queries(query_item):
     replacements['{{deployment}}'] = os.environ['SUMO_LOC']
     replacements['{{org_id}}'] = os.environ['SUMO_ORG']
     replacements['{{longquery_limit_stmt}}'] = str(LONGQUERY_LIMIT)
+    replacements['{{key}}'] = str(QUERY_TAG)
     for sub_key, sub_value in replacements.items():
         query_item = query_item.replace(sub_key, sub_value)
     return query_item
