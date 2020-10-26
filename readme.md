@@ -26,11 +26,7 @@ The steps are as follows:
     
         sudo -H pip3 install pipenv 
  
-    5. Clone this repo using the following command:
-    
-        git clone git@github.com:wks-sumo-logic/sumologic-cmdlets.git
-
-    This will create a new folder
+    5. Clone this repository. This will create a new folder
     
     6. Change into this folder. Type the following to install all the package dependencies 
        (this may take a while as this will download all of the libraries it uses):
