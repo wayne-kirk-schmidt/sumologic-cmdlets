@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Exaplanation: list_partitions a cmdlet within the sumocli that retrieves information
+Exaplanation: list_transformationRules a cmdlet within the sumocli that retrieves information
 
 Usage:
-   $ python  list_partitions [ options ]
+   $ python  list_transformationRules [ options ]
 
 Style:
    Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
-    @name           sumocli_list_partitions
+    @name           sumocli_list_transformationRules
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
@@ -34,7 +34,7 @@ sys.dont_write_bytecode = 1
 
 MY_CFG = 'undefined'
 PARSER = argparse.ArgumentParser(description="""
-list_partitions is a Sumo Logic cli cmdlet retrieving information about partitions
+list_transformationRules is a Sumo Logic cli cmdlet retrieving information about transformationRules
 """)
 
 PARSER.add_argument("-a", metavar='<secret>', dest='MY_SECRET', \
@@ -97,12 +97,12 @@ def run_sumo_cmdlet(source):
     This will collect the information on object for sumologic and then collect that into a list.
     the output of the action will provide a tuple of the orgid, objecttype, and id
     """
-    target_object = "fer"
+    target_object = "transformationRule"
     target_dict = dict()
     target_dict["orgid"] = SUMO_ORG
     target_dict[target_object] = dict()
 
-    src_items = source.get_partitions()
+    src_items = source.get_transformationRules()
 
     for src_item in src_items:
         if (str(src_item['id']) == str(ARGS.myself) or ARGS.myself == 0):
@@ -191,20 +191,20 @@ class SumoApiClient():
 ### class ###
 ### methods ###
 
-    def get_partitions(self):
+    def get_transformationRules(self):
         """
-        Using an HTTP client, this uses a GET to retrieve all fer information.
+        Using an HTTP client, this uses a GET to retrieve all transformationRules information.
         """
-        url = "/v1/partitions"
+        url = "/v1/transformationRules"
         body = self.get(url).text
         results = json.loads(body)['data']
         return results
 
-    def get_partition(self, myself):
+    def get_transformationRule(self, myself):
         """
-        Using an HTTP client, this uses a GET to retrieve single fer information.
+        Using an HTTP client, this uses a GET to retrieve single transformationRule information.
         """
-        url = "/v1/extractionRules/" + str(myself)
+        url = "/v1/transformationRules/" + str(myself)
         body = self.get(url).text
         results = json.loads(body)['data']
         return results
