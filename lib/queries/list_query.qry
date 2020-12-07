@@ -1,0 +1,3 @@
+_index=sumologic_search_usage_per_query
+| count by user_name, query, query_start_time, query_end_time
+| fields - _count
