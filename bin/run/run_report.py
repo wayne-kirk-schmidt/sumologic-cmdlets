@@ -42,7 +42,7 @@ run_query is a Sumo Logic cli cmdlet managing queries
 PARSER.add_argument("-a", metavar='<secret>', dest='MY_APIKEY', \
                     help="set query authkey (format: <key>:<secret>) ")
 PARSER.add_argument("-e", metavar='<endpoint>', dest='MY_ENDPOINT', \
-                    help="set query endpoint (format: <dep>) ")
+                    help="set query endpoint (format: <dep>_<orgid>) ")
 PARSER.add_argument("-t", metavar='<targetorg>', dest='MY_TARGET', \
                     help="set query target  (format: <dep>_<orgid>) ")
 PARSER.add_argument("-q", metavar='<query>', dest='MY_QUERY', help="set query content")
@@ -96,12 +96,17 @@ if ARGS.MY_APIKEY:
     os.environ['SUMO_KEY'] = MY_APISECRET
 
 if ARGS.MY_ENDPOINT:
-    os.environ['SUMO_END'] = ARGS.MY_ENDPOINT
+    (MY_DEPLOYMENT, MY_ORGID) = ARGS.MY_ENDPOINT.split('_')
+    os.environ['SUMO_LOC'] = MY_DEPLOYMENT
+    os.environ['SUMO_ORG'] = MY_ORGID
+    QUERY_TAG = ARGS.MY_ENDPOINT
+    os.environ['SUMO_END'] = MY_DEPLOYMENT
 
 if ARGS.MY_TARGET:
     (MY_DEPLOYMENT, MY_ORGID) = ARGS.MY_TARGET.split('_')
     os.environ['SUMO_LOC'] = MY_DEPLOYMENT
     os.environ['SUMO_ORG'] = MY_ORGID
+    QUERY_TAG = ARGS.MY_TARGET
 
 try:
 
@@ -150,8 +155,7 @@ def write_query_output(header_output, query_number):
 
     ext_sep = '.'
 
-    querytag = SUMO_END + '.' + SUMO_LOC + '_' + SUMO_ORG
-
+    querytag = QUERY_TAG
     extension = ARGS.OUT_FORMAT
     number = '{:03d}'.format(query_number)
 
@@ -178,7 +182,7 @@ def tailor_queries(query_item):
     replacements['{{deployment}}'] = os.environ['SUMO_LOC']
     replacements['{{org_id}}'] = os.environ['SUMO_ORG']
     replacements['{{longquery_limit_stmt}}'] = str(LONGQUERY_LIMIT)
-    replacements['{{key}}'] = str(ARGS.MY_ENDPOINT)
+    replacements['{{key}}'] = str(QUERY_TAG)
     for sub_key, sub_value in replacements.items():
         query_item = query_item.replace(sub_key, sub_value)
     return query_item
@@ -261,7 +265,7 @@ def run_sumo_query(source, query, time_params):
         my_offset = ( my_limit * my_counter )
 
         query_records = source.search_job_records(query_jobid, my_limit, my_offset)
-        query_messages = source.search_job_messages(query_jobid, my_limit, my_offset)
+        ### query_messages = source.search_job_messages(query_jobid, my_limit, my_offset)
 
         if my_counter == 0:
             fields = query_records["fields"]
