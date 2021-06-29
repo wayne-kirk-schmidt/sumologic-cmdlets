@@ -24,7 +24,6 @@ __author__ = "Wayne Schmidt (wschmidt@sumologic.com)"
 
 ### beginning ###
 import json
-import pprint
 import os
 import sys
 import argparse
@@ -32,6 +31,8 @@ import http
 import re
 import time
 import requests
+import pandas
+
 sys.dont_write_bytecode = 1
 
 MY_CFG = 'undefined'
@@ -50,6 +51,12 @@ PARSER.add_argument("-r", metavar='<range>', dest='MY_RANGE', default='1h', \
                     help="set query range")
 PARSER.add_argument("-o", metavar='<fmt>', default="csv", dest='OUT_FORMAT', \
                     help="set query output (values: txt, csv)")
+PARSER.add_argument("-d", metavar='<outdir>', default="/var/tmp", dest='OUTPUTDIR', \
+                    help="set query output directory")
+PARSER.add_argument("-p", metavar='<parallel>', default=10, dest='PARALLEL', \
+                    help="set parallel level")
+PARSER.add_argument("-s", metavar='<sleeptime>', default=1, dest='SLEEPTIME', \
+                    help="set sleep time to check results")
 PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
                     dest='VERBOSE', help="increase verbosity")
 
@@ -74,6 +81,8 @@ QUERY_EXT = '.sqy'
 CSV_SEP = ','
 TAB_SEP = '\t'
 EOL_SEP = '\n'
+
+MY_SLEEP = int(ARGS.SLEEPTIME)
 
 MY_SEP = CSV_SEP
 if ARGS.OUT_FORMAT == 'txt':
@@ -114,8 +123,6 @@ try:
 except KeyError as myerror:
     print('Environment Variable Not Set :: {} '.format(myerror.args[0]))
 
-PPRINT = pprint.PrettyPrinter(indent=4)
-
 ### beginning ###
 
 def main():
@@ -134,7 +141,7 @@ def main():
     for query_item in query_list:
         query_data = collect_contents(query_item)
         query_data = tailor_queries(query_data)
-        if ARGS.VERBOSE > 4:
+        if ARGS.VERBOSE > 7:
             print('RUN_QUERY.query_item: {}'.format(query_item))
             print('RUN_QUERY.query_data: {}'.format(query_data))
         header_output = run_sumo_query(source, query_data, time_params)
@@ -155,19 +162,22 @@ def write_query_output(header_output, query_number):
     extension = ARGS.OUT_FORMAT
     number = '{:03d}'.format(query_number)
 
-    output_dir = '/var/tmp'
+    output_dir = os.path.abspath(ARGS.OUTPUTDIR)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
     output_file = ext_sep.join((querytag, str(number), extension))
     output_target = os.path.join(output_dir, output_file)
 
-    if ARGS.VERBOSE > 2:
-        print(header_output)
-
     if ARGS.VERBOSE > 3:
-        print(output_target)
+        print('OUTPUT_FILE: {}'.format(output_target))
 
-    file_object = open(output_target, "w")
-    file_object.write(header_output + '\n' )
-    file_object.close()
+    if ARGS.VERBOSE > 5:
+        print('OUTPUT:\n\n{}\n'.format(header_output))
+
+    with open(output_target, "w") as file_object:
+        file_object.write(header_output + '\n' )
+        file_object.close()
 
 def tailor_queries(query_item):
     """
@@ -232,9 +242,9 @@ def collect_contents(query_item):
     """
     query = query_item
     if os.path.exists(query_item):
-        file_object = open(query_item, "r")
-        query = file_object.read()
-        file_object.close()
+        with open(query_item, "r") as file_object:
+            query = file_object.read()
+            file_object.close()
     return query
 
 def run_sumo_query(source, query, time_params):
@@ -244,13 +254,14 @@ def run_sumo_query(source, query, time_params):
 
     query_job = source.search_job(query, time_params)
     query_jobid = query_job["id"]
-    if ARGS.VERBOSE > 4:
+    if ARGS.VERBOSE > 3:
         print('RUN_QUERY.jobid: {}'.format(query_jobid))
 
-    (query_status, num_records, iterations) = source.search_job_records_tally(query_jobid)
+    (query_status, num_messages, num_records, iterations) = source.search_job_tally(query_jobid)
     if ARGS.VERBOSE > 4:
         print('RUN_QUERY.status: {}'.format(query_status))
         print('RUN_QUERY.records: {}'.format(num_records))
+        print('RUN_QUERY.messages: {}'.format(num_messages))
         print('RUN_QUERY.iterations: {}'.format(iterations))
 
     header_list = list()
@@ -261,30 +272,23 @@ def run_sumo_query(source, query, time_params):
         my_offset = ( my_limit * my_counter )
 
         query_records = source.search_job_records(query_jobid, my_limit, my_offset)
-        query_messages = source.search_job_messages(query_jobid, my_limit, my_offset)
+        dataframe = pandas.DataFrame.from_records(query_records['fields'])
+        myfielddf = pandas.DataFrame(dataframe, columns=['name'])
+        header_list = myfielddf.to_csv(header=None, index=False).strip('\n').split('\n')
 
-        if my_counter == 0:
-            fields = query_records["fields"]
-            for field in fields:
-                fieldname = field["name"]
-                header_list.append(fieldname)
-
-        records = query_records["records"]
-        for record in records:
+        for record in query_records["records"]:
             record_line_list = list()
-            for field in fields:
-                fieldname = field["name"]
-                recordname = str(record["map"][fieldname])
-                record_line_list.append(recordname)
+            for header in header_list:
+                recordlist = str(record["map"][header]).replace(',','|')
+                record_line_list.append(recordlist)
                 record_line = MY_SEP.join(record_line_list)
             record_body_list.append(record_line)
 
-    header = MY_SEP.join(header_list)
+        header = MY_SEP.join(header_list)
+        output = EOL_SEP.join(record_body_list)
+        assembled_output = EOL_SEP.join((header, output))
 
-    output = EOL_SEP.join(record_body_list)
-    header_output = EOL_SEP.join((header, output))
-
-    return header_output
+    return assembled_output
 
 ### class ###
 class SumoApiClient():
@@ -380,24 +384,6 @@ class SumoApiClient():
         response = self.get('/v1/search/jobs/' + str(search_jobid))
         return json.loads(response.text)
 
-    def search_job_records_tally(self, query_jobid):
-        """
-        Find out search job records
-        """
-        query_output = self.search_job_status(query_jobid)
-        query_status = query_output['state']
-        num_records = query_output['recordCount']
-        time.sleep(1)
-        iterations = 1
-        while query_status == 'GATHERING RESULTS':
-            query_output = self.search_job_status(query_jobid)
-            query_status = query_output['state']
-            num_records = query_output['recordCount']
-            time.sleep(1)
-            iterations += 1
-
-        return (query_status, num_records, iterations)
-
     def calculate_and_fetch_records(self, query_jobid, num_records):
         """
         Calculate and return records in chunks based on LIMIT
@@ -412,22 +398,24 @@ class SumoApiClient():
 
         return job_records
 
-    def search_job_messages_tally(self, query_jobid):
+    def search_job_tally(self, query_jobid):
         """
         Find out search job messages
         """
         query_output = self.search_job_status(query_jobid)
         query_status = query_output['state']
         num_messages = query_output['messageCount']
-        time.sleep(1)
+        num_records = query_output['recordCount']
+        time.sleep(MY_SLEEP)
         iterations = 1
         while query_status == 'GATHERING RESULTS':
             query_output = self.search_job_status(query_jobid)
             query_status = query_output['state']
             num_messages = query_output['messageCount']
-            time.sleep(1)
+            num_records = query_output['recordCount']
+            time.sleep(MY_SLEEP)
             iterations += 1
-        return (query_status, num_messages, iterations)
+        return (query_status, num_messages, num_records, iterations)
 
     def calculate_and_fetch_messages(self, query_jobid, num_messages):
         """
