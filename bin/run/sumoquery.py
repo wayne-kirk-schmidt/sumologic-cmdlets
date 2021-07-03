@@ -53,8 +53,6 @@ PARSER.add_argument("-o", metavar='<fmt>', default="csv", dest='OUT_FORMAT', \
                     help="set query output (values: txt, csv)")
 PARSER.add_argument("-d", metavar='<outdir>', default="/var/tmp", dest='OUTPUTDIR', \
                     help="set query output directory")
-PARSER.add_argument("-p", metavar='<parallel>', default=10, dest='PARALLEL', \
-                    help="set parallel level")
 PARSER.add_argument("-s", metavar='<sleeptime>', default=1, dest='SLEEPTIME', \
                     help="set sleep time to check results")
 PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
@@ -142,11 +140,11 @@ def main():
         query_data = collect_contents(query_item)
         query_data = tailor_queries(query_data)
         if ARGS.VERBOSE > 7:
-            print('RUN_QUERY.query_item: {}'.format(query_item))
-            print('RUN_QUERY.query_data: {}'.format(query_data))
+            print('SUMOQUERY.query_item: {}'.format(query_item))
+            print('SUMOQUERY.query_data: {}'.format(query_data))
         header_output = run_sumo_query(source, query_data, time_params)
         if ARGS.VERBOSE > 8:
-            print('RUN_QUERY.output: {}'.format(header_output))
+            print('SUMOQUERY.output:\n{}\n'.format(header_output))
         write_query_output(header_output, counter)
         counter += 1
 
@@ -170,10 +168,7 @@ def write_query_output(header_output, query_number):
     output_target = os.path.join(output_dir, output_file)
 
     if ARGS.VERBOSE > 3:
-        print('OUTPUT_FILE: {}'.format(output_target))
-
-    if ARGS.VERBOSE > 5:
-        print('OUTPUT:\n\n{}\n'.format(header_output))
+        print('SUMOQUERY.outputfile: {}'.format(output_target))
 
     with open(output_target, "w") as file_object:
         file_object.write(header_output + '\n' )
@@ -251,44 +246,64 @@ def run_sumo_query(source, query, time_params):
     """
     This runs the Sumo Command, and then saves the output and the status
     """
-
     query_job = source.search_job(query, time_params)
     query_jobid = query_job["id"]
     if ARGS.VERBOSE > 3:
-        print('RUN_QUERY.jobid: {}'.format(query_jobid))
+        print('SUMOQUERY.jobid: {}'.format(query_jobid))
 
     (query_status, num_messages, num_records, iterations) = source.search_job_tally(query_jobid)
     if ARGS.VERBOSE > 4:
-        print('RUN_QUERY.status: {}'.format(query_status))
-        print('RUN_QUERY.records: {}'.format(num_records))
-        print('RUN_QUERY.messages: {}'.format(num_messages))
-        print('RUN_QUERY.iterations: {}'.format(iterations))
+        print('SUMOQUERY.status: {}'.format(query_status))
+        print('SUMOQUERY.records: {}'.format(num_records))
+        print('SUMOQUERY.messages: {}'.format(num_messages))
+        print('SUMOQUERY.iterations: {}'.format(iterations))
 
-    header_list = list()
-    record_body_list = list()
+    if num_records == 0:
+        assembled_output = 'NORECORDS'
+    if num_records > 0:
+        total_records = ''
+        for my_counter in range(0, iterations, 1):
+            my_limit = LIMIT
+            my_offset = ( my_limit * my_counter )
 
-    for my_counter in range(0, iterations, 1):
-        my_limit = LIMIT
-        my_offset = ( my_limit * my_counter )
+            query_records = source.search_job_records(query_jobid, my_limit, my_offset)
 
-        query_records = source.search_job_records(query_jobid, my_limit, my_offset)
-        dataframe = pandas.DataFrame.from_records(query_records['fields'])
-        myfielddf = pandas.DataFrame(dataframe, columns=['name'])
-        header_list = myfielddf.to_csv(header=None, index=False).strip('\n').split('\n')
+            header,header_list = build_header(query_records)
+            output = build_body(query_records,header_list)
+            total_records = total_records + output
 
-        for record in query_records["records"]:
-            record_line_list = list()
-            for header in header_list:
-                recordlist = str(record["map"][header]).replace(',','|')
-                record_line_list.append(recordlist)
-                record_line = MY_SEP.join(record_line_list)
-            record_body_list.append(record_line)
-
-        header = MY_SEP.join(header_list)
-        output = EOL_SEP.join(record_body_list)
-        assembled_output = EOL_SEP.join((header, output))
+        assembled_output = EOL_SEP.join([ header , total_records ])
 
     return assembled_output
+
+def build_header(query_records):
+    """
+    This builds the header of the output from the results of query_records
+    """
+
+    header_list = list()
+    dataframe = pandas.DataFrame.from_records(query_records['fields'])
+    myfielddf = pandas.DataFrame(dataframe, columns=['name'])
+    header_list = myfielddf.to_csv(header=None, index=False).strip('\n').split('\n')
+    header = MY_SEP.join(header_list)
+
+    return header, header_list
+
+def build_body(query_records, header_list):
+    """
+    This builds the body of the output from the results of query_records
+    """
+    record_body_list = list()
+    for record in query_records["records"]:
+        record_line_list = list()
+        for header in header_list:
+            recordlist = str(record["map"][header]).replace(',','|')
+            record_line_list.append(recordlist)
+            record_line = MY_SEP.join(record_line_list)
+        record_body_list.append(record_line)
+    output = EOL_SEP.join(record_body_list)
+
+    return output
 
 ### class ###
 class SumoApiClient():
