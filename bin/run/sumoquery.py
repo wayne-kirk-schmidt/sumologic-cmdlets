@@ -12,14 +12,14 @@ Style:
    http://google.github.io/styleguide/pyguide.html
 
     @name           sumoquery
-    @version        0.90
+    @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
     @license-name   GNU GPL
     @license-url    http://www.gnu.org/licenses/gpl.html
 """
 
-__version__ = 0.90
+__version__ = 1.00
 __author__ = "Wayne Schmidt (wschmidt@sumologic.com)"
 
 ### beginning ###
@@ -45,7 +45,7 @@ PARSER.add_argument("-a", metavar='<secret>', dest='MY_APIKEY', \
 PARSER.add_argument("-e", metavar='<endpoint>', dest='MY_ENDPOINT', \
                     help="set query endpoint (format: <dep>) ")
 PARSER.add_argument("-t", metavar='<targetorg>', dest='MY_TARGET', \
-                    help="set query target  (format: <dep>_<orgid>) ")
+                    action='append', help="set query target  (format: <dep>_<orgid>) ")
 PARSER.add_argument("-q", metavar='<query>', dest='MY_QUERY', help="set query content")
 PARSER.add_argument("-r", metavar='<range>', dest='MY_RANGE', default='1h', \
                     help="set query range")
@@ -55,6 +55,8 @@ PARSER.add_argument("-d", metavar='<outdir>', default="/var/tmp", dest='OUTPUTDI
                     help="set query output directory")
 PARSER.add_argument("-s", metavar='<sleeptime>', default=1, dest='SLEEPTIME', \
                     help="set sleep time to check results")
+PARSER.add_argument("-w", metavar='<workers>', type=int, default=1, dest='WORKERS', \
+                    help="set number of workers to process")
 PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
                     dest='VERBOSE', help="increase verbosity")
 
@@ -97,6 +99,8 @@ TIME_TABLE["w"] = TIME_TABLE["d"] * WEEK_D
 
 TIME_PARAMS = dict()
 
+TARGETS = ARGS.MY_TARGET
+
 if ARGS.MY_APIKEY:
     (MY_APINAME, MY_APISECRET) = ARGS.MY_APIKEY.split(':')
     os.environ['SUMO_UID'] = MY_APINAME
@@ -105,18 +109,10 @@ if ARGS.MY_APIKEY:
 if ARGS.MY_ENDPOINT:
     os.environ['SUMO_END'] = ARGS.MY_ENDPOINT
 
-if ARGS.MY_TARGET:
-    (MY_DEPLOYMENT, MY_ORGID) = ARGS.MY_TARGET.split('_')
-    os.environ['SUMO_LOC'] = MY_DEPLOYMENT
-    os.environ['SUMO_ORG'] = MY_ORGID
-
 try:
-
     SUMO_UID = os.environ['SUMO_UID']
     SUMO_KEY = os.environ['SUMO_KEY']
     SUMO_END = os.environ['SUMO_END']
-    SUMO_LOC = os.environ['SUMO_LOC']
-    SUMO_ORG = os.environ['SUMO_ORG']
 
 except KeyError as myerror:
     print('Environment Variable Not Set :: {} '.format(myerror.args[0]))
@@ -129,33 +125,53 @@ def main():
     Once done, then issue the command required
     """
 
-    source = SumoApiClient(SUMO_UID, SUMO_KEY, SUMO_END)
-
+    apisession = SumoApiClient(SUMO_UID, SUMO_KEY, SUMO_END)
+    query_targets = resolve_targets(TARGETS)
+    query_list = collect_queries()
     time_params = calculate_range()
 
-    counter = 1
+    process_request(apisession, query_targets, query_list, time_params)
 
-    query_list = collect_queries()
-    for query_item in query_list:
-        query_data = collect_contents(query_item)
-        query_data = tailor_queries(query_data)
-        if ARGS.VERBOSE > 7:
-            print('SUMOQUERY.query_item: {}'.format(query_item))
-            print('SUMOQUERY.query_data: {}'.format(query_data))
-        header_output = run_sumo_query(source, query_data, time_params)
-        if ARGS.VERBOSE > 8:
-            print('SUMOQUERY.output:\n{}\n'.format(header_output))
-        write_query_output(header_output, counter)
-        counter += 1
+def process_request(apisession, query_targets, query_list, time_params):
+    """
+    perform the queries and process the output
+    """
+    for query_target in query_targets:
+        querycounter = 1
+        for query_item in query_list:
+            query_data = collect_contents(query_item)
+            query_data = tailor_queries(query_data, query_target)
+            if ARGS.VERBOSE > 7:
+                print('SUMOQUERY.query_item: {}'.format(query_item))
+                print('SUMOQUERY.query_data: {}'.format(query_data))
+            header_output = run_sumo_query(apisession, query_data, time_params)
+            write_query_output(header_output, query_target, querycounter)
+            querycounter += 1
 
-def write_query_output(header_output, query_number):
+def resolve_targets(target_org_list):
+    """
+    Resolve targets based on input
+    """
+    query_targets = list()
+
+    for target_org in target_org_list:
+        if os.path.isfile(target_org):
+            with open(target_org) as input_file:
+                input_lines = [input_line.rstrip() for input_line in input_file]
+                query_targets += input_lines
+        else:
+            query_targets.append(target_org)
+
+    return query_targets
+
+def write_query_output(header_output, query_target, query_number):
     """
     This is a wrapper for writing out the contents of a file
     """
 
     ext_sep = '.'
 
-    querytag = SUMO_END + '.' + SUMO_LOC + '_' + SUMO_ORG
+    querytag = SUMO_END + '.' + query_target
 
     extension = ARGS.OUT_FORMAT
     number = '{:03d}'.format(query_number)
@@ -174,16 +190,16 @@ def write_query_output(header_output, query_number):
         file_object.write(header_output + '\n' )
         file_object.close()
 
-def tailor_queries(query_item):
+def tailor_queries(query_item, query_target):
     """
     This substitutes common parameters for values from the script.
     Later, this will be a data driven exercise.
     """
     replacements = dict()
-    replacements['{{deployment}}'] = os.environ['SUMO_LOC']
-    replacements['{{org_id}}'] = os.environ['SUMO_ORG']
+    replacements['{{deployment}}'] = query_target.split('_')[0]
+    replacements['{{org_id}}'] = query_target.split('_')[1]
     replacements['{{longquery_limit_stmt}}'] = str(LONGQUERY_LIMIT)
-    replacements['{{key}}'] = str(ARGS.MY_ENDPOINT)
+    replacements['{{key}}'] = query_target
     for sub_key, sub_value in replacements.items():
         query_item = query_item.replace(sub_key, sub_value)
     return query_item
@@ -242,21 +258,30 @@ def collect_contents(query_item):
             file_object.close()
     return query
 
-def run_sumo_query(source, query, time_params):
+def run_sumo_query(apisession, query, time_params):
     """
     This runs the Sumo Command, and then saves the output and the status
     """
-    query_job = source.search_job(query, time_params)
+    query_job = apisession.search_job(query, time_params)
     query_jobid = query_job["id"]
     if ARGS.VERBOSE > 3:
         print('SUMOQUERY.jobid: {}'.format(query_jobid))
 
-    (query_status, num_messages, num_records, iterations) = source.search_job_tally(query_jobid)
+    (query_status, num_messages, num_records, iterations) = apisession.search_job_tally(query_jobid)
     if ARGS.VERBOSE > 4:
         print('SUMOQUERY.status: {}'.format(query_status))
         print('SUMOQUERY.records: {}'.format(num_records))
         print('SUMOQUERY.messages: {}'.format(num_messages))
         print('SUMOQUERY.iterations: {}'.format(iterations))
+
+    assembled_output = build_assembled_output(apisession, query_jobid, num_records, iterations)
+
+    return assembled_output
+
+def build_assembled_output(apisession, query_jobid, num_records, iterations):
+    """
+    This assembles the header and output, going through the iterations of the output
+    """
 
     if num_records == 0:
         assembled_output = 'NORECORDS'
@@ -266,7 +291,7 @@ def run_sumo_query(source, query, time_params):
             my_limit = LIMIT
             my_offset = ( my_limit * my_counter )
 
-            query_records = source.search_job_records(query_jobid, my_limit, my_offset)
+            query_records = apisession.search_job_records(query_jobid, my_limit, my_offset)
 
             header,header_list = build_header(query_records)
             output = build_body(query_records,header_list)
