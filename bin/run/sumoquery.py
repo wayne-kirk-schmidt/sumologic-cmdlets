@@ -30,6 +30,7 @@ import argparse
 import http
 import re
 import time
+import multiprocessing
 import requests
 import pandas
 
@@ -130,7 +131,35 @@ def main():
     query_list = collect_queries()
     time_params = calculate_range()
 
+    if ARGS.WORKERS == 1:
+        process_request(apisession, query_targets, query_list, time_params)
+    else:
+        worker_manager(query_targets)
+
+def worker_task(inputs):
+    """
+    This is the worker task function
+    """
+    apisession = SumoApiClient(SUMO_UID, SUMO_KEY, SUMO_END)
+    query_list = collect_queries()
+    time_params = calculate_range()
+    workerpid = multiprocessing.current_process()
+    if ARGS.VERBOSE > 5:
+        print('SUMOQUERY.worker: {}'.format(workerpid))
+        print('SUMOQUERY.worktarget: {}'.format(inputs))
+
+    query_targets = list()
+    query_targets.append(inputs)
+
     process_request(apisession, query_targets, query_list, time_params)
+
+def worker_manager(query_targets):
+    """
+    This is the manager function to handle mapping tasks to workers
+    """
+    worker_list = query_targets
+    with multiprocessing.Pool(ARGS.WORKERS) as task_queue:
+        task_queue.map(worker_task, worker_list)
 
 def process_request(apisession, query_targets, query_list, time_params):
     """
