@@ -12,7 +12,7 @@ Style:
    http://google.github.io/styleguide/pyguide.html
 
     @name           sumoquery
-    @version        1.00
+    @version        1.10
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
     @license-name   GNU GPL
@@ -30,8 +30,11 @@ import argparse
 import http
 import re
 import time
+import random
 import multiprocessing
 import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 import pandas
 
 sys.dont_write_bytecode = 1
@@ -54,7 +57,7 @@ PARSER.add_argument("-o", metavar='<fmt>', default="csv", dest='OUT_FORMAT', \
                     help="set query output (values: txt, csv)")
 PARSER.add_argument("-d", metavar='<outdir>', default="/var/tmp", dest='OUTPUTDIR', \
                     help="set query output directory")
-PARSER.add_argument("-s", metavar='<sleeptime>', default=1, dest='SLEEPTIME', \
+PARSER.add_argument("-s", metavar='<sleeptime>', default=2, dest='SLEEPTIME', \
                     help="set sleep time to check results")
 PARSER.add_argument("-w", metavar='<workers>', type=int, default=1, dest='WORKERS', \
                     help="set number of workers to process")
@@ -176,6 +179,8 @@ def process_request(apisession, query_targets, query_list, time_params):
             header_output = run_sumo_query(apisession, query_data, time_params)
             write_query_output(header_output, query_target, querycounter)
             querycounter += 1
+            time.sleep(random.randint(0,MY_SLEEP))
+        time.sleep(random.randint(0,MY_SLEEP))
 
 def resolve_targets(target_org_list):
     """
@@ -370,7 +375,19 @@ class SumoApiClient():
         """
         Initializes the Sumo Logic object
         """
+
+        self.retry_strategy = Retry(
+            total=3,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["HEAD", "GET", "OPTIONS"]
+        )
+        self.adapter = HTTPAdapter(max_retries=self.retry_strategy)
+
         self.session = requests.Session()
+
+        self.session.mount("https://", self.adapter)
+        self.session.mount("http://", self.adapter)
+
         self.session.auth = (access_id, access_key)
         self.session.headers = {'content-type': 'application/json', \
             'accept': 'application/json'}
@@ -475,14 +492,14 @@ class SumoApiClient():
         query_status = query_output['state']
         num_messages = query_output['messageCount']
         num_records = query_output['recordCount']
-        time.sleep(MY_SLEEP)
+        time.sleep(random.randint(0,MY_SLEEP))
         iterations = 1
         while query_status == 'GATHERING RESULTS':
             query_output = self.search_job_status(query_jobid)
             query_status = query_output['state']
             num_messages = query_output['messageCount']
             num_records = query_output['recordCount']
-            time.sleep(MY_SLEEP)
+            time.sleep(random.randint(0,MY_SLEEP))
             iterations += 1
         return (query_status, num_messages, num_records, iterations)
 
@@ -493,6 +510,7 @@ class SumoApiClient():
         job_messages = []
         iterations = num_messages // LIMIT + 1
         for iteration in range(1, iterations + 1):
+            time.sleep(random.randint(0,MY_SLEEP))
             records = self.search_job_records(query_jobid, limit=LIMIT,
                                               offset=((iteration - 1) * LIMIT))
             for record in records['records']:
