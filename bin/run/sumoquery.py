@@ -74,7 +74,7 @@ PENDING = os.path.join( OUTPUTBASE, 'pending' )
 os.makedirs(PENDING, exist_ok=True)
 
 OUTPUTS = os.path.join( OUTPUTBASE, 'outputs' )
-os.makedirs(PENDING, exist_ok=True)
+os.makedirs(OUTPUTS, exist_ok=True)
 
 SEC_M = 1000
 MIN_S = 60
