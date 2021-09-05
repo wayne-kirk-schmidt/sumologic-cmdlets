@@ -12,14 +12,14 @@ Style:
    http://google.github.io/styleguide/pyguide.html
 
     @name           sumoquery
-    @version        1.10
+    @version        1.40
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
     @license-name   GNU GPL
     @license-url    http://www.gnu.org/licenses/gpl.html
 """
 
-__version__ = 1.00
+__version__ = 1.40
 __author__ = "Wayne Schmidt (wschmidt@sumologic.com)"
 
 ### beginning ###
@@ -64,6 +64,8 @@ PARSER.add_argument("-w", metavar='<workers>', type=int, default=1, dest='WORKER
                     help="set number of workers to process")
 PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
                     dest='VERBOSE', help="increase verbosity")
+PARSER.add_argument("-p", default=False, action='store_true', \
+                    dest='CLEANUP', help="process remaining pending queries")
 
 ARGS = PARSER.parse_args()
 
@@ -159,9 +161,15 @@ def main():
     """
 
     apisession = SumoApiClient(SUMO_UID, SUMO_KEY, SUMO_END)
-    query_targets = resolve_targets(TARGETS)
+
+    if ARGS.CLEANUP:
+        query_targets = os.listdir(PENDING)
+    else:
+        query_targets = resolve_targets(TARGETS)
+
     query_list = collect_queries()
     time_params = calculate_range()
+
 
     if ARGS.WORKERS == 1:
         process_request(apisession, query_targets, query_list, time_params)
