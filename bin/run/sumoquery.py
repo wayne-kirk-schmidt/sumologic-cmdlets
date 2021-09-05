@@ -56,7 +56,7 @@ PARSER.add_argument("-r", metavar='<range>', dest='MY_RANGE', default='1h', \
                     help="set query range")
 PARSER.add_argument("-o", metavar='<fmt>', default="csv", dest='OUT_FORMAT', \
                     help="set query output (values: txt, csv)")
-PARSER.add_argument("-d", metavar='<outdir>', default="/var/tmp", dest='OUTPUTDIR', \
+PARSER.add_argument("-d", metavar='<outdir>', default="/var/tmp/sumoquery", dest='OUTPUTDIR', \
                     help="set query output directory")
 PARSER.add_argument("-s", metavar='<sleeptime>', default=2, dest='SLEEPTIME', \
                     help="set sleep time to check results")
@@ -66,6 +66,15 @@ PARSER.add_argument("-v", type=int, default=0, metavar='<verbose>', \
                     dest='VERBOSE', help="increase verbosity")
 
 ARGS = PARSER.parse_args()
+
+OUTPUTBASE = ARGS.OUTPUTDIR
+os.makedirs(OUTPUTBASE, exist_ok=True)
+
+PENDING = os.path.join( OUTPUTBASE, 'pending' )
+os.makedirs(PENDING, exist_ok=True)
+
+OUTPUTS = os.path.join( OUTPUTBASE, 'outputs' )
+os.makedirs(PENDING, exist_ok=True)
 
 SEC_M = 1000
 MIN_S = 60
@@ -184,12 +193,29 @@ def worker_manager(query_targets):
     with multiprocessing.Pool(ARGS.WORKERS) as task_queue:
         task_queue.map(worker_task, worker_list)
 
+def prepare_placeholders(query_targets):
+    """
+    Prepare the placeholder files
+    """
+
+    for query_target in query_targets:
+
+        placeholder = os.path.join( PENDING, query_target )
+        open(placeholder, 'a').close()
+
 def process_request(apisession, query_targets, query_list, time_params):
     """
     perform the queries and process the output
     """
+
+    prepare_placeholders(query_targets)
+
     for query_target in query_targets:
+
         querycounter = 1
+
+        jobholder = os.path.join( PENDING, query_target )
+
         for query_item in query_list:
             query_data = collect_contents(query_item)
             query_data = tailor_queries(query_data, query_target)
@@ -201,6 +227,8 @@ def process_request(apisession, query_targets, query_list, time_params):
             querycounter += 1
             time.sleep(random.randint(0,MY_SLEEP))
         time.sleep(random.randint(0,MY_SLEEP))
+
+        os.remove(jobholder)
 
 def resolve_targets(target_org_list):
     """
@@ -230,12 +258,8 @@ def write_query_output(header_output, query_target, query_number):
     extension = ARGS.OUT_FORMAT
     number = '{:03d}'.format(query_number)
 
-    output_dir = os.path.abspath(ARGS.OUTPUTDIR)
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
     output_file = ext_sep.join((querytag, str(number), extension))
-    output_target = os.path.join(output_dir, output_file)
+    output_target = os.path.join(OUTPUTS, output_file)
 
     if ARGS.VERBOSE > 3:
         print('SUMOQUERY.outputfile: {}'.format(output_target))
@@ -397,7 +421,7 @@ class SumoApiClient():
         """
 
         self.retry_strategy = Retry(
-            total=6,
+            total=10,
             status_forcelist=[429, 500, 502, 503, 504],
             allowed_methods=["HEAD", "GET", "OPTIONS"]
         )
