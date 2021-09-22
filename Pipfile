@@ -11,3 +11,8 @@ requests = "*"
 pandas = "*"
 argparse = "*"
 benedict = "*"
+boto3 = "*"
+botocore = "*"
+
+[requires]
+python_version = "3.8"
