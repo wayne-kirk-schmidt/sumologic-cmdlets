@@ -118,26 +118,24 @@ TIME_PARAMS = dict()
 TARGETS = ARGS.MY_TARGET
 
 if ARGS.MY_APIKEY:
-    (MY_APINAME, MY_APISECRET) = ARGS.MY_APIKEY.split(':')
-    os.environ['SUMO_UID'] = MY_APINAME
-    os.environ['SUMO_KEY'] = MY_APISECRET
+    if "aws:ssm:" in ARGS.MY_APIKEY:
+        VENDOR, METHOD, REGION, TOKENS = ARGS.MY_APIKEY.split(':')
+        if ARGS.VERBOSE > 7:
+            print('VENDOR: {}'.format(VENDOR))
+            print('METHOD: {}'.format(METHOD))
+            print('REGION: {}'.format(REGION))
+            print('TOKENS: {}'.format(TOKENS))
 
-if "aws:ssm:" in ARGS.MY_APIKEY:
-    VENDOR, METHOD, REGION, TOKENS = ARGS.MY_APIKEY.split(':')
-    if ARGS.VERBOSE > 7:
-        print('VENDOR: {}'.format(VENDOR))
-        print('METHOD: {}'.format(METHOD))
-        print('REGION: {}'.format(REGION))
-        print('TOKENS: {}'.format(TOKENS))
+        ssmobject = boto3.client(METHOD, region_name=REGION)
+        ssmresponse = ssmobject.get_parameters(
+            Names=[ TOKENS ],
+            WithDecryption=True
+        )
+        TOKEN_CONTENTS = ssmresponse['Parameters'][0]['Value']
+        (MY_APINAME, MY_APISECRET) = TOKEN_CONTENTS.split(':')
+    else:
+        (MY_APINAME, MY_APISECRET) = ARGS.MY_APIKEY.split(':')
 
-    ssmobject = boto3.client(METHOD, region_name=REGION)
-    ssmresponse = ssmobject.get_parameters(
-        Names=[ TOKENS ],
-        WithDecryption=True
-    )
-
-    TOKEN_CONTENTS = ssmresponse['Parameters'][0]['Value']
-    (MY_APINAME, MY_APISECRET) = TOKEN_CONTENTS.split(':')
     os.environ['SUMO_UID'] = MY_APINAME
     os.environ['SUMO_KEY'] = MY_APISECRET
 
@@ -328,6 +326,8 @@ def collect_queries():
                     if os.path.splitext(file)[1] == QUERY_EXT:
                         fullpath = os.path.join(root, file)
                         query_list.append(fullpath)
+        else:
+            query_list.append(ARGS.MY_QUERY)
     else:
         query_list.append(DEFAULT_QUERY)
     return query_list
