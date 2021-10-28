@@ -298,11 +298,20 @@ def calculate_range():
     period = "h"
 
     if ARGS.MY_RANGE:
-        number = re.match(r'\d+', ARGS.MY_RANGE.replace('-', ''))
-        period = ARGS.MY_RANGE.replace(number.group(), '')
+        if ":" in ARGS.MY_RANGE:
+            start_marker, final_marker = ARGS.MY_RANGE.split(":")
+            start_number = re.match(r'\d+', start_marker.replace('-', ''))
+            start_period = start_marker.replace(start_number.group(), '')
+            time_to = NOW_TIME - (int(start_number.group()) * int(TIME_TABLE[start_period]))
+            final_number = re.match(r'\d+', final_marker.replace('-', ''))
+            final_period = final_marker.replace(final_number.group(), '')
+            time_from = time_to - (int(final_number.group()) * int(TIME_TABLE[final_period]))
+        else:
+            time_to = NOW_TIME
+            final_number = re.match(r'\d+', ARGS.MY_RANGE.replace('-', ''))
+            final_period = ARGS.MY_RANGE.replace(final_number.group(), '')
+            time_from = time_to - (int(final_number.group()) * int(TIME_TABLE[final_period]))
 
-    time_to = NOW_TIME
-    time_from = time_to - (int(number.group()) * int(TIME_TABLE[period]))
     TIME_PARAMS["time_to"] = time_to
     TIME_PARAMS["time_from"] = time_from
     TIME_PARAMS["time_zone"] = 'UTC'
