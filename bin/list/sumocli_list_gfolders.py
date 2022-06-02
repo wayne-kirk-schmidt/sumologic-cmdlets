@@ -15,7 +15,7 @@ Style:
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
-    @license-name   Apache 2.0 
+    @license-name   Apache 2.0
     @license-url    http://www.gnu.org/licenses/gpl.html
 """
 
@@ -25,7 +25,6 @@ __author__ = "Wayne Schmidt (wschmidt@sumologic.com)"
 
 ### beginning ###
 import json
-import pprint
 import os
 import sys
 import argparse
@@ -80,9 +79,7 @@ try:
     SUMO_ORG = os.environ['SUMO_ORG']
     SUMO_END = os.environ['SUMO_END']
 except KeyError as myerror:
-    print('Environment Variable Not Set :: {} '.format(myerror.args[0]))
-
-PP = pprint.PrettyPrinter(indent=4)
+    print(f'Environment Variable Not Set :: {myerror.args[0]}')
 
 ### beginning ###
 def main():
@@ -99,12 +96,12 @@ def run_sumo_cmdlet(source):
     the output of the action will provide a tuple of the orgid, objecttype, and id
     """
     target_object = "globalfolders"
-    target_dict = dict()
+    target_dict = {}
     target_dict["orgid"] = SUMO_ORG
-    target_dict[target_object] = dict()
+    target_dict[target_object] = {}
 
     src_items = source.get_globalfolders()
-    target_dict[target_object]['id'] = dict()
+    target_dict[target_object]['id'] = {}
     target_dict[target_object]['id'].update({'parent' : SUMO_ORG})
     target_dict[target_object]['id'].update({'dump' : src_items})
     print(json.dumps(target_dict, indent=4))
@@ -116,7 +113,7 @@ class SumoApiClient():
     The class includes the HTTP methods, cmdlets, and init methods
     """
 
-    def __init__(self, access_id, access_key, region, cookieFile='cookies.txt'):
+    def __init__(self, access_id, access_key, region, cookie_file='cookies.txt'):
         """
         Initializes the Sumo Logic object
         """
@@ -125,7 +122,7 @@ class SumoApiClient():
         self.session.headers = {'content-type': 'application/json', \
             'accept': 'application/json'}
         self.apipoint = 'https://api.' + region + '.sumologic.com/api'
-        cookiejar = http.cookiejar.FileCookieJar(cookieFile)
+        cookiejar = http.cookiejar.FileCookieJar(cookie_file)
         self.session.cookies = cookiejar
 
     def delete(self, method, params=None, headers=None, data=None):

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# pylint: disable=R0914
 
 """
 Exaplanation: sumo_query is a Sumo Logic cmdlet that manages a query
@@ -15,7 +16,7 @@ Style:
     @version        0.90
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
-    @license-name   Apache 2.0 
+    @license-name   Apache 2.0
     @license-url    http://www.gnu.org/licenses/gpl.html
 """
 
@@ -24,7 +25,6 @@ __author__ = "Wayne Schmidt (wschmidt@sumologic.com)"
 
 ### beginning ###
 import json
-import pprint
 import os
 import sys
 import argparse
@@ -81,14 +81,14 @@ if ARGS.OUT_FORMAT == 'txt':
 
 NOW_TIME = int(time.time()) * SEC_M
 
-TIME_TABLE = dict()
+TIME_TABLE = {}
 TIME_TABLE["s"] = SEC_M
 TIME_TABLE["m"] = TIME_TABLE["s"] * MIN_S
 TIME_TABLE["h"] = TIME_TABLE["m"] * HOUR_M
 TIME_TABLE["d"] = TIME_TABLE["h"] * DAY_H
 TIME_TABLE["w"] = TIME_TABLE["d"] * WEEK_D
 
-TIME_PARAMS = dict()
+TIME_PARAMS = {}
 
 if ARGS.MY_APIKEY:
     (MY_APINAME, MY_APISECRET) = ARGS.MY_APIKEY.split(':')
@@ -117,9 +117,7 @@ try:
     SUMO_ORG = os.environ['SUMO_ORG']
 
 except KeyError as myerror:
-    print('Environment Variable Not Set :: {} '.format(myerror.args[0]))
-
-PPRINT = pprint.PrettyPrinter(indent=4)
+    print(f'Environment Variable Not Set :: {myerror.args[0]}')
 
 ### beginning ###
 
@@ -140,11 +138,11 @@ def main():
         query_data = collect_contents(query_item)
         query_data = tailor_queries(query_data)
         if ARGS.VERBOSE > 4:
-            print('RUN_QUERY.query_item: {}'.format(query_item))
-            print('RUN_QUERY.query_data: {}'.format(query_data))
+            print(f'RUN_QUERY.query_item: {query_item}')
+            print(f'RUN_QUERY.query_data: {query_data}')
         header_output = run_sumo_query(source, query_data, time_params)
         if ARGS.VERBOSE > 8:
-            print('RUN_QUERY.output: {}'.format(header_output))
+            print(f'RUN_QUERY.output: {header_output}')
         write_query_output(header_output, counter)
         counter += 1
 
@@ -157,7 +155,7 @@ def write_query_output(header_output, query_number):
 
     querytag = QUERY_TAG
     extension = ARGS.OUT_FORMAT
-    number = '{:03d}'.format(query_number)
+    number = f'{query_number:03d}'
 
     output_dir = '/var/tmp'
     output_file = ext_sep.join((querytag, str(number), extension))
@@ -169,16 +167,15 @@ def write_query_output(header_output, query_number):
     if ARGS.VERBOSE > 3:
         print(output_target)
 
-    file_object = open(output_target, "w")
-    file_object.write(header_output + '\n' )
-    file_object.close()
+    with open(output_target, "w", encoding='utf8') as file_object:
+        file_object.write(header_output + '\n' )
 
 def tailor_queries(query_item):
     """
     This substitutes common parameters for values from the script.
     Later, this will be a data driven exercise.
     """
-    replacements = dict()
+    replacements = {}
     replacements['{{deployment}}'] = os.environ['SUMO_LOC']
     replacements['{{org_id}}'] = os.environ['SUMO_ORG']
     replacements['{{longquery_limit_stmt}}'] = str(LONGQUERY_LIMIT)
@@ -236,9 +233,8 @@ def collect_contents(query_item):
     """
     query = query_item
     if os.path.exists(query_item):
-        file_object = open(query_item, "r")
-        query = file_object.read()
-        file_object.close()
+        with open(query_item, "r", encoding='utf8') as file_object:
+            query = file_object.read()
     return query
 
 def run_sumo_query(source, query, time_params):
@@ -248,24 +244,25 @@ def run_sumo_query(source, query, time_params):
 
     query_job = source.search_job(query, time_params)
     query_jobid = query_job["id"]
+
     if ARGS.VERBOSE > 4:
-        print('RUN_QUERY.jobid: {}'.format(query_jobid))
+        print(f'RUN_QUERY.jobid: {query_jobid}')
 
     (query_status, num_records, iterations) = source.search_job_records_tally(query_jobid)
-    if ARGS.VERBOSE > 4:
-        print('RUN_QUERY.status: {}'.format(query_status))
-        print('RUN_QUERY.records: {}'.format(num_records))
-        print('RUN_QUERY.iterations: {}'.format(iterations))
 
-    header_list = list()
-    record_body_list = list()
+    if ARGS.VERBOSE > 4:
+        print(f'RUN_QUERY.status: {query_status}')
+        print(f'RUN_QUERY.records: {num_records}')
+        print(f'RUN_QUERY.iterations: {iterations}')
+
+    header_list = []
+    record_body_list = []
 
     for my_counter in range(0, iterations, 1):
         my_limit = LIMIT
         my_offset = ( my_limit * my_counter )
 
         query_records = source.search_job_records(query_jobid, my_limit, my_offset)
-        ### query_messages = source.search_job_messages(query_jobid, my_limit, my_offset)
 
         if my_counter == 0:
             fields = query_records["fields"]
@@ -275,7 +272,7 @@ def run_sumo_query(source, query, time_params):
 
         records = query_records["records"]
         for record in records:
-            record_line_list = list()
+            record_line_list = []
             for field in fields:
                 fieldname = field["name"]
                 recordname = str(record["map"][fieldname])
@@ -297,7 +294,7 @@ class SumoApiClient():
     The class includes the HTTP methods, cmdlets, and init methods
     """
 
-    def __init__(self, access_id, access_key, region, cookieFile='cookies.txt'):
+    def __init__(self, access_id, access_key, region, cookie_file='cookies.txt'):
         """
         Initializes the Sumo Logic object
         """
@@ -306,7 +303,7 @@ class SumoApiClient():
         self.session.headers = {'content-type': 'application/json', \
             'accept': 'application/json'}
         self.endpoint = 'https://api.' + region + '.sumologic.com/api'
-        cookiejar = http.cookiejar.FileCookieJar(cookieFile)
+        cookiejar = http.cookiejar.FileCookieJar(cookie_file)
         self.session.cookies = cookiejar
 
     def delete(self, method, params=None, headers=None, data=None):

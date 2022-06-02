@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# pylint: disable=E0401
 
 """
 Exaplanation: sumoquery is a Sumo Logic cmdlet that manages a query
@@ -15,7 +16,7 @@ Style:
     @version        1.40
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
-    @license-name   Apache 2.0 
+    @license-name   Apache 2.0
     @license-url    http://www.gnu.org/licenses/gpl.html
 """
 
@@ -32,6 +33,7 @@ import re
 import time
 import random
 import multiprocessing
+import pathlib
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
@@ -106,14 +108,14 @@ if ARGS.OUT_FORMAT == 'txt':
 
 NOW_TIME = int(time.time()) * SEC_M
 
-TIME_TABLE = dict()
+TIME_TABLE = {}
 TIME_TABLE["s"] = SEC_M
 TIME_TABLE["m"] = TIME_TABLE["s"] * MIN_S
 TIME_TABLE["h"] = TIME_TABLE["m"] * HOUR_M
 TIME_TABLE["d"] = TIME_TABLE["h"] * DAY_H
 TIME_TABLE["w"] = TIME_TABLE["d"] * WEEK_D
 
-TIME_PARAMS = dict()
+TIME_PARAMS = {}
 
 TARGETS = ARGS.MY_TARGET
 
@@ -121,10 +123,10 @@ if ARGS.MY_APIKEY:
     if "aws:ssm:" in ARGS.MY_APIKEY:
         VENDOR, METHOD, REGION, TOKENS = ARGS.MY_APIKEY.split(':')
         if ARGS.VERBOSE > 7:
-            print('VENDOR: {}'.format(VENDOR))
-            print('METHOD: {}'.format(METHOD))
-            print('REGION: {}'.format(REGION))
-            print('TOKENS: {}'.format(TOKENS))
+            print(f'VENDOR: {VENDOR}')
+            print(f'METHOD: {METHOD}')
+            print(f'REGION: {REGION}')
+            print(f'TOKENS: {TOKENS}')
 
         ssmobject = boto3.client(METHOD, region_name=REGION)
         ssmresponse = ssmobject.get_parameters(
@@ -148,7 +150,7 @@ try:
     SUMO_END = os.environ['SUMO_END']
 
 except KeyError as myerror:
-    print('Environment Variable Not Set :: {} '.format(myerror.args[0]))
+    print(f'Environment Variable Not Set :: {myerror.args[0]}')
 
 ### beginning ###
 
@@ -183,10 +185,10 @@ def worker_task(inputs):
     time_params = calculate_range()
     workerpid = multiprocessing.current_process()
     if ARGS.VERBOSE > 5:
-        print('SUMOQUERY.worker: {}'.format(workerpid))
-        print('SUMOQUERY.worktarget: {}'.format(inputs))
+        print(f'SUMOQUERY.worker: {workerpid}')
+        print(f'SUMOQUERY.worktarget: {inputs}')
 
-    query_targets = list()
+    query_targets = []
     query_targets.append(inputs)
 
     process_request(apisession, query_targets, query_list, time_params)
@@ -205,9 +207,8 @@ def prepare_placeholders(query_targets):
     """
 
     for query_target in query_targets:
-
         placeholder = os.path.join( PENDING, query_target )
-        open(placeholder, 'a').close()
+        pathlib.Path(placeholder).touch()
 
 def process_request(apisession, query_targets, query_list, time_params):
     """
@@ -226,8 +227,8 @@ def process_request(apisession, query_targets, query_list, time_params):
             query_data = collect_contents(query_item)
             query_data = tailor_queries(query_data, query_target)
             if ARGS.VERBOSE > 7:
-                print('SUMOQUERY.query_item: {}'.format(query_item))
-                print('SUMOQUERY.query_data: {}'.format(query_data))
+                print(f'SUMOQUERY.query_item: {query_item}')
+                print(f'SUMOQUERY.query_data: {query_data}')
             header_output = run_sumo_query(apisession, query_data, time_params)
             write_query_output(header_output, query_target, querycounter)
             querycounter += 1
@@ -240,11 +241,10 @@ def resolve_targets(target_org_list):
     """
     Resolve targets based on input
     """
-    query_targets = list()
-
+    query_targets = []
     for target_org in target_org_list:
         if os.path.isfile(target_org):
-            with open(target_org) as input_file:
+            with open(target_org, 'r', encoding='utf8') as input_file:
                 input_lines = [input_line.rstrip() for input_line in input_file]
                 query_targets += input_lines
         else:
@@ -262,15 +262,15 @@ def write_query_output(header_output, query_target, query_number):
     querytag = SUMO_END + '.' + query_target
 
     extension = ARGS.OUT_FORMAT
-    number = '{:03d}'.format(query_number)
+    number = f'{query_number:03d}'
 
     output_file = ext_sep.join((querytag, str(number), extension))
     output_target = os.path.join(OUTPUTS, output_file)
 
     if ARGS.VERBOSE > 3:
-        print('SUMOQUERY.outputfile: {}'.format(output_target))
+        print(f'SUMOQUERY.outputfile: {output_target}')
 
-    with open(output_target, "w") as file_object:
+    with open(output_target, "w", encoding='utf8') as file_object:
         file_object.write(header_output + '\n' )
         file_object.close()
 
@@ -279,7 +279,7 @@ def tailor_queries(query_item, query_target):
     This substitutes common parameters for values from the script.
     Later, this will be a data driven exercise.
     """
-    replacements = dict()
+    replacements = {}
     replacements['{{deployment}}'] = query_target.split('_')[0]
     replacements['{{org_id}}'] = query_target.split('_')[1]
     replacements['{{longquery_limit_stmt}}'] = str(LONGQUERY_LIMIT)
@@ -293,9 +293,6 @@ def calculate_range():
     This calculates time ranges based on range from current day
     If specified "NNX to MMY" then NNX is start and MMY is finish
     """
-
-    number = 1
-    period = "h"
 
     if ARGS.MY_RANGE:
         if ":" in ARGS.MY_RANGE:
@@ -348,7 +345,7 @@ def collect_contents(query_item):
     """
     query = query_item
     if os.path.exists(query_item):
-        with open(query_item, "r") as file_object:
+        with open(query_item, "r", encoding='utf8') as file_object:
             query = file_object.read()
             file_object.close()
     return query
@@ -360,14 +357,14 @@ def run_sumo_query(apisession, query, time_params):
     query_job = apisession.search_job(query, time_params)
     query_jobid = query_job["id"]
     if ARGS.VERBOSE > 3:
-        print('SUMOQUERY.jobid: {}'.format(query_jobid))
+        print(f'SUMOQUERY.jobid: {query_jobid}')
 
     (query_status, num_messages, num_records, iterations) = apisession.search_job_tally(query_jobid)
     if ARGS.VERBOSE > 4:
-        print('SUMOQUERY.status: {}'.format(query_status))
-        print('SUMOQUERY.records: {}'.format(num_records))
-        print('SUMOQUERY.messages: {}'.format(num_messages))
-        print('SUMOQUERY.iterations: {}'.format(iterations))
+        print(f'SUMOQUERY.status: {query_status}')
+        print(f'SUMOQUERY.records: {num_records}')
+        print(f'SUMOQUERY.messages: {num_messages}')
+        print(f'SUMOQUERY.iterations: {iterations}')
 
     assembled_output = build_assembled_output(apisession, query_jobid, num_records, iterations)
 
@@ -401,7 +398,7 @@ def build_header(query_records):
     This builds the header of the output from the results of query_records
     """
 
-    header_list = list()
+    header_list = []
     dataframe = pandas.DataFrame.from_records(query_records['fields'])
     myfielddf = pandas.DataFrame(dataframe, columns=['name'])
     header_list = myfielddf.to_csv(header=None, index=False).strip('\n').split('\n')
@@ -413,9 +410,9 @@ def build_body(query_records, header_list):
     """
     This builds the body of the output from the results of query_records
     """
-    record_body_list = list()
+    record_body_list = []
     for record in query_records["records"]:
-        record_line_list = list()
+        record_line_list = []
         for header in header_list:
             recordlist = str(record["map"][header]).replace(',','|')
             record_line_list.append(recordlist)
@@ -432,7 +429,7 @@ class SumoApiClient():
     The class includes the HTTP methods, cmdlets, and init methods
     """
 
-    def __init__(self, access_id, access_key, region, cookieFile='cookies.txt'):
+    def __init__(self, access_id, access_key, region, cookie_file='cookies.txt'):
         """
         Initializes the Sumo Logic object
         """
@@ -453,7 +450,7 @@ class SumoApiClient():
         self.session.headers = {'content-type': 'application/json', \
             'accept': 'application/json'}
         self.endpoint = 'https://api.' + region + '.sumologic.com/api'
-        cookiejar = http.cookiejar.FileCookieJar(cookieFile)
+        cookiejar = http.cookiejar.FileCookieJar(cookie_file)
         self.session.cookies = cookiejar
 
     def delete(self, method, params=None, headers=None, data=None):
