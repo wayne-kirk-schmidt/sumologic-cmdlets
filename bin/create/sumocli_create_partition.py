@@ -15,7 +15,7 @@ Style:
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
-    @license-name   Apache 2.0 
+    @license-name   Apache 2.0
     @license-url    http://www.gnu.org/licenses/gpl.html
 """
 
@@ -25,7 +25,6 @@ __author__ = "Wayne Schmidt (wschmidt@sumologic.com)"
 ### beginning ###
 import ast
 import json
-import pprint
 import os
 import sys
 import argparse
@@ -83,9 +82,7 @@ try:
     SUMO_ORG = os.environ['SUMO_ORG']
     SUMO_END = os.environ['SUMO_END']
 except KeyError as myerror:
-    print('Environment Variable Not Set :: {} '.format(myerror.args[0]))
-
-PP = pprint.PrettyPrinter(indent=4)
+    print(f'Environment Variable Not Set :: {myerror.args[0]}')
 
 ### beginning ###
 def main():
@@ -102,9 +99,9 @@ def run_sumo_cmdlet(source):
     the output of the action will provide a tuple of the orgid, objecttype, and id
     """
     target_object = "connection"
-    target_dict = dict()
+    target_dict = {}
     target_dict["orgid"] = SUMO_ORG
-    target_dict[target_object] = dict()
+    target_dict[target_object] = {}
 
 ########
 
@@ -123,7 +120,7 @@ def run_sumo_cmdlet(source):
 
     src_item = source.get_fer(target_id)
     if str(src_item['id']) == str(target_id):
-        target_dict[src_item['id']] = dict()
+        target_dict[src_item['id']] = {}
         target_dict[src_item['id']].update({'parent' : SUMO_ORG})
         target_dict[src_item['id']].update({'id' : src_item['id']})
         target_dict[src_item['id']].update({'name' : src_item['name']})
@@ -132,7 +129,7 @@ def run_sumo_cmdlet(source):
     if ARGS.outputfile == 'stdout':
         print(json.dumps(target_dict, indent=4))
     else:
-        with open(ARGS.outputfile, 'w') as outputobject:
+        with open(ARGS.outputfile, 'w', encoding='utf8') as outputobject:
             outputobject.write(json.dumps(target_dict, indent=4))
 
 #### class ###
@@ -142,7 +139,7 @@ class SumoApiClient():
     The class includes the HTTP methods, cmdlets, and init methods
     """
 
-    def __init__(self, access_id, access_key, region, cookieFile='cookies.txt'):
+    def __init__(self, access_id, access_key, region, cookie_file='cookies.txt'):
         """
         Initializes the Sumo Logic object
         """
@@ -151,7 +148,7 @@ class SumoApiClient():
         self.session.headers = {'content-type': 'application/json', \
             'accept': 'application/json'}
         self.apipoint = 'https://api.' + region + '.sumologic.com/api'
-        cookiejar = http.cookiejar.FileCookieJar(cookieFile)
+        cookiejar = http.cookiejar.FileCookieJar(cookie_file)
         self.session.cookies = cookiejar
 
     def delete(self, method, params=None, headers=None, data=None):
@@ -202,16 +199,22 @@ class SumoApiClient():
 ### methods ###
 
     def get_connections(self, limit=1000, token=''):
+        """
+        collect information on connections
+        """
         params = {'limit': limit, 'token': token}
         url = '/v1/connections/'
-        body = self.get(url, param=params).text
+        body = self.get(url, params=params).text
         results = json.loads(body)
         return results
 
     def create_connection(self, jsonpayload):
+        """
+        create a connection
+        """
         if ARGS.jsonfile:
-            fileobject = open(ARGS.jsonfile, "r")
-            jsonpayload = ast.literal_eval((fileobject.read()))
+            with open(ARGS.jsonfile, "r", encoding='utf8') as fileobject:
+                jsonpayload = ast.literal_eval((fileobject.read()))
 
         if ARGS.verbose:
             print(jsonpayload)
@@ -230,14 +233,20 @@ class SumoApiClient():
         return results
 
     def get_connection(self, item_id):
+        """
+        get information on a connection
+        """
         url = '/v1/connections/' + str(item_id)
         body = self.get(url).text
         results = json.loads(body)
         return results
 
     def delete_connection(self, item_id):
+        """
+        delete a connection
+        """
         url = '/v1/connections/' + str(item_id)
-        body = self.delete(url).text
+        results = self.delete(url).text
         return results
 
 ### methods ###

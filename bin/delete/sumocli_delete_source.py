@@ -15,7 +15,7 @@ Style:
     @version        1.00
     @author-name    Wayne Schmidt
     @author-email   wschmidt@sumologic.com
-    @license-name   Apache 2.0 
+    @license-name   Apache 2.0
     @license-url    http://www.gnu.org/licenses/gpl.html
 """
 
@@ -25,7 +25,6 @@ __author__ = "Wayne Schmidt (wschmidt@sumologic.com)"
 
 ### beginning ###
 import json
-import pprint
 import os
 import sys
 import argparse
@@ -84,15 +83,12 @@ try:
     SUMO_END = os.environ['SUMO_END']
     MYSELFID = os.environ['MYSELFID']
     PARENTID = os.environ['PARENTID']
-
 except KeyError as myerror:
-    print('Environment Variable Not Set :: {} '.format(myerror.args[0]))
+    print(f'Environment Variable Not Set :: {myerror.args[0]}')
 
 BACKUP_DIR = '/var/tmp'
 BACKUP_FILE = SUMO_END + '_' + SUMO_ORG + '.' + MYSELFID + '.' + 'json'
 BACKUP_TARGET = os.path.join(BACKUP_DIR, BACKUP_FILE)
-
-PP = pprint.PrettyPrinter(indent=4)
 
 ### beginning ###
 def main():
@@ -109,20 +105,20 @@ def run_sumo_cmdlet(source):
     the output of the action will provide a tuple of the orgid, objecttype, and id
     """
     target_object = "source"
-    target_dict = dict()
+    target_dict = {}
     target_dict["orgid"] = SUMO_ORG
-    target_dict[target_object] = dict()
+    target_dict[target_object] = {}
 
     src_items = source.get_sources(PARENTID)
     for src_item in src_items:
         if str(src_item['id']) == str(MYSELFID):
-            target_dict[target_object][src_item['id']] = dict()
+            target_dict[target_object][src_item['id']] = {}
             target_dict[target_object][src_item['id']].update({'parent' : SUMO_ORG})
             target_dict[target_object][src_item['id']].update({'id' : src_item['id']})
             target_dict[target_object][src_item['id']].update({'name' : src_item['name']})
             target_dict[target_object][src_item['id']].update({'dump' : src_item})
 
-    with open(BACKUP_TARGET, 'w') as outputobject:
+    with open(BACKUP_TARGET, 'w', encoding='utf8') as outputobject:
         outputobject.write(json.dumps(target_dict, indent=4))
 
     src_items = source.delete_source(PARENTID, MYSELFID)
@@ -134,7 +130,7 @@ class SumoApiClient():
     The class includes the HTTP methods, cmdlets, and init methods
     """
 
-    def __init__(self, access_id, access_key, region, cookieFile='cookies.txt'):
+    def __init__(self, access_id, access_key, region, cookie_file='cookies.txt'):
         """
         Initializes the Sumo Logic object
         """
@@ -143,7 +139,7 @@ class SumoApiClient():
         self.session.headers = {'content-type': 'application/json', \
             'accept': 'application/json'}
         self.apipoint = 'https://api.' + region + '.sumologic.com/api'
-        cookiejar = http.cookiejar.FileCookieJar(cookieFile)
+        cookiejar = http.cookiejar.FileCookieJar(cookie_file)
         self.session.cookies = cookiejar
 
     def delete(self, method, params=None, headers=None, data=None):
