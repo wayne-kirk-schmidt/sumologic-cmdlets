@@ -49,10 +49,9 @@ run_query is a Sumo Logic cli cmdlet managing queries
 
 PARSER.add_argument("-a", metavar='<secret>', dest='MY_APIKEY', \
                     help="set query authkey (format: <key>:<secret>) ")
-PARSER.add_argument("-e", metavar='<endpoint>', dest='MY_ENDPOINT', \
-                    help="set query endpoint (format: <dep>) ")
 PARSER.add_argument("-t", metavar='<targetorg>', dest='MY_TARGET', \
-                    action='append', help="set query target  (format: <dep>_<orgid>) ")
+                    required=True, action='append', \
+                    help="set query target  (format: <dep>_<orgid>) ")
 PARSER.add_argument("-q", metavar='<query>', dest='MY_QUERY', help="set query content")
 PARSER.add_argument("-r", metavar='<range>', dest='MY_RANGE', default='1h', \
                     help="set query range")
@@ -60,7 +59,7 @@ PARSER.add_argument("-o", metavar='<fmt>', default="csv", dest='OUT_FORMAT', \
                     help="set query output (values: txt, csv)")
 PARSER.add_argument("-d", metavar='<outdir>', default="/var/tmp/sumoquery", dest='OUTPUTDIR', \
                     help="set query output directory")
-PARSER.add_argument("-s", metavar='<sleeptime>', default=2, dest='SLEEPTIME', \
+PARSER.add_argument("-s", metavar='<sleeptime>', default=3, dest='SLEEPTIME', \
                     help="set sleep time to check results")
 PARSER.add_argument("-w", metavar='<workers>', type=int, default=1, dest='WORKERS', \
                     help="set number of workers to process")
@@ -95,6 +94,8 @@ _index=sumologic_volume
 '''
 
 QUERY_EXT = '.sqy'
+
+QUERY_TAG = 'sumoquery'
 
 CSV_SEP = ','
 TAB_SEP = '\t'
@@ -141,13 +142,9 @@ if ARGS.MY_APIKEY:
     os.environ['SUMO_UID'] = MY_APINAME
     os.environ['SUMO_KEY'] = MY_APISECRET
 
-if ARGS.MY_ENDPOINT:
-    os.environ['SUMO_END'] = ARGS.MY_ENDPOINT
-
 try:
     SUMO_UID = os.environ['SUMO_UID']
     SUMO_KEY = os.environ['SUMO_KEY']
-    SUMO_END = os.environ['SUMO_END']
 
 except KeyError as myerror:
     print(f'Environment Variable Not Set :: {myerror.args[0]}')
@@ -160,7 +157,7 @@ def main():
     Once done, then issue the command required
     """
 
-    apisession = SumoApiClient(SUMO_UID, SUMO_KEY, SUMO_END)
+    apisession = SumoApiClient(SUMO_UID, SUMO_KEY)
 
     if ARGS.CLEANUP:
         query_targets = os.listdir(PENDING)
@@ -180,7 +177,7 @@ def worker_task(inputs):
     """
     This is the worker task function
     """
-    apisession = SumoApiClient(SUMO_UID, SUMO_KEY, SUMO_END)
+    apisession = SumoApiClient(SUMO_UID, SUMO_KEY)
     query_list = collect_queries()
     time_params = calculate_range()
     workerpid = multiprocessing.current_process()
@@ -259,7 +256,7 @@ def write_query_output(header_output, query_target, query_number):
 
     ext_sep = '.'
 
-    querytag = SUMO_END + '.' + query_target
+    querytag = QUERY_TAG + '.' + query_target
 
     extension = ARGS.OUT_FORMAT
     number = f'{query_number:03d}'
@@ -429,7 +426,7 @@ class SumoApiClient():
     The class includes the HTTP methods, cmdlets, and init methods
     """
 
-    def __init__(self, access_id, access_key, region, cookie_file='cookies.txt'):
+    def __init__(self, access_id, access_key, endpoint=None, cookie_file='cookies.txt'):
         """
         Initializes the Sumo Logic object
         """
@@ -449,9 +446,26 @@ class SumoApiClient():
         self.session.auth = (access_id, access_key)
         self.session.headers = {'content-type': 'application/json', \
             'accept': 'application/json'}
-        self.endpoint = 'https://api.' + region + '.sumologic.com/api'
         cookiejar = http.cookiejar.FileCookieJar(cookie_file)
         self.session.cookies = cookiejar
+        if endpoint is None:
+            self.endpoint = self._get_endpoint()
+        elif len(endpoint) < 3:
+            self.endpoint = 'https://api.' + endpoint + '.sumologic.com/api'
+        else:
+            self.endpoint = endpoint
+        if self.endpoint[-1:] == "/":
+            raise Exception("Endpoint should not end with a slash character")
+
+    def _get_endpoint(self):
+        """
+        SumoLogic REST API endpoint changes based on the geo location of the client.
+        It contacts the default REST endpoint and resolves the 401 to get the right endpoint.
+        """
+        self.endpoint = 'https://api.sumologic.com/api'
+        self.response = self.session.get('https://api.sumologic.com/api/v1/collectors')
+        endpoint = self.response.url.replace('/v1/collectors', '')
+        return endpoint
 
     def delete(self, method, params=None, headers=None, data=None):
         """
@@ -534,6 +548,7 @@ class SumoApiClient():
         """
         job_records = []
         iterations = num_records // LIMIT + 1
+        time.sleep(random.randint(0,MY_SLEEP))
         for iteration in range(1, iterations + 1):
             records = self.search_job_records(query_jobid, limit=LIMIT,
                                               offset=((iteration - 1) * LIMIT))
@@ -579,6 +594,7 @@ class SumoApiClient():
         """
         Query the job messages of a search job
         """
+        time.sleep(random.randint(0,MY_SLEEP))
         params = {'limit': limit, 'offset': offset}
         response = self.get('/v1/search/jobs/' + str(query_jobid) + '/messages', params)
         return json.loads(response.text)
@@ -587,6 +603,7 @@ class SumoApiClient():
         """
         Query the job records of a search job
         """
+        time.sleep(random.randint(0,MY_SLEEP))
         params = {'limit': limit, 'offset': offset}
         response = self.get('/v1/search/jobs/' + str(query_jobid) + '/records', params)
         return json.loads(response.text)
