@@ -77,7 +77,6 @@ try:
     SUMO_KEY = os.environ['SUMO_KEY']
     SUMO_LOC = os.environ['SUMO_LOC']
     SUMO_ORG = os.environ['SUMO_ORG']
-    SUMO_END = os.environ['SUMO_END']
 except KeyError as myerror:
     print(f'Environment Variable Not Set :: {myerror.args[0]}')
 
@@ -87,7 +86,7 @@ def main():
     Setup the Sumo API connection, using the required tuple of region, id, and key.
     Once done, then issue the command required
     """
-    source = SumoApiClient(SUMO_UID, SUMO_KEY, SUMO_END)
+    source = SumoApiClient(SUMO_UID, SUMO_KEY)
     run_sumo_cmdlet(source)
 
 def run_sumo_cmdlet(source):
@@ -113,23 +112,41 @@ class SumoApiClient():
     The class includes the HTTP methods, cmdlets, and init methods
     """
 
-    def __init__(self, access_id, access_key, region, cookie_file='cookies.txt'):
+    def __init__(self, access_id, access_key, endpoint=None, cookie_file='cookies.txt'):
         """
         Initializes the Sumo Logic object
         """
+
         self.session = requests.Session()
         self.session.auth = (access_id, access_key)
         self.session.headers = {'content-type': 'application/json', \
             'accept': 'application/json'}
-        self.apipoint = 'https://api.' + region + '.sumologic.com/api'
         cookiejar = http.cookiejar.FileCookieJar(cookie_file)
         self.session.cookies = cookiejar
+        if endpoint is None:
+            self.endpoint = self._get_endpoint()
+        elif len(endpoint) < 3:
+            self.endpoint = 'https://api.' + endpoint + '.sumologic.com/api'
+        else:
+            self.endpoint = endpoint
+        if self.endpoint[-1:] == "/":
+            raise Exception("Endpoint should not end with a slash character")
+
+    def _get_endpoint(self):
+        """
+        SumoLogic REST API endpoint changes based on the geo location of the client.
+        It contacts the default REST endpoint and resolves the 401 to get the right endpoint.
+        """
+        self.endpoint = 'https://api.sumologic.com/api'
+        self.response = self.session.get('https://api.sumologic.com/api/v1/collectors')
+        endpoint = self.response.url.replace('/v1/collectors', '')
+        return endpoint
 
     def delete(self, method, params=None, headers=None, data=None):
         """
         Defines a Sumo Logic Delete operation
         """
-        response = self.session.delete(self.apipoint + method, \
+        response = self.session.delete(self.endpoint + method, \
             params=params, headers=headers, data=data)
         if response.status_code != 200:
             response.reason = response.text
@@ -140,7 +157,7 @@ class SumoApiClient():
         """
         Defines a Sumo Logic Get operation
         """
-        response = self.session.get(self.apipoint + method, \
+        response = self.session.get(self.endpoint + method, \
             params=params, headers=headers)
         if response.status_code != 200:
             response.reason = response.text
@@ -151,7 +168,7 @@ class SumoApiClient():
         """
         Defines a Sumo Logic Post operation
         """
-        response = self.session.post(self.apipoint + method, \
+        response = self.session.post(self.endpoint + method, \
             data=json.dumps(data), headers=headers, params=params)
         if response.status_code != 200:
             response.reason = response.text
@@ -162,7 +179,7 @@ class SumoApiClient():
         """
         Defines a Sumo Logic Put operation
         """
-        response = self.session.put(self.apipoint + method, \
+        response = self.session.put(self.endpoint + method, \
             data=json.dumps(data), headers=headers, params=params)
         if response.status_code != 200:
             response.reason = response.text
