@@ -32,7 +32,83 @@ The steps are as follows:
        (this may take a while as this will download all of the libraries it uses):
 
         pipenv install
-        
+
+Using the Scripts
+=================
+
+In general the following are requred to be set either as an env var or an argument.
+
+Argument: MY_APIKEY
+You must supply this argument or have preset the env vars
+format: <key>:<secret> and will split into: SUMO_UID:SUMO_KEY
+
+
+```
+    SUMO_UID = os.environ['SUMO_UID']
+    SUMO_KEY = os.environ['SUMO_KEY']
+```
+
+Argument: ARGS.MY_CLIENT
+format: DEPLOYMENT_ORGID and will split to: SUMO_LOC_SUMO_ORG
+
+This corresponds to the env vars:
+```
+    os.environ['SUMO_LOC'] = MY_DEPLOYMENT
+    os.environ['SUMO_ORG'] = MY_ORGID
+    os.environ['SUMO_TAG'] = ARGS.MY_CLIENT
+```
+
+Argument: ARGS.MY_ENDPOINT
+This is the api endpoint code such as au,us2 etc.
+```
+    os.environ['SUMO_END'] = ARGS.MY_ENDPOINT
+```
+
+Example: running a query
+========================
+
+Assuming the env vars are setup SUMO_UID,SUMO_KEY, to run a query job we might do:
+```
+./bin/run/sumoquery.py -t 'abc_1234' -q '_sourcecategory=* | limit 10| count by _sourcecategory'
+```
+
+sumoquery exports **records** rather than messages in a csv format to /var/tmp/sumoquery/outputs/
+
+A dir is created for based on the output job tagging such as -t 'abc_1234' would reult in:
+/var/tmp/sumoquery/outputs/sumoquery.abc_1234.001.csv 
+
+Example: List connections in csv format to console
+==================================================
+
+With env vars set such as SUMO_ORG=abcd
+```
+./bin/list/sumocli_list_connections.py 
+abcd,connection,test,0000000000022363
+```
+
+Example: Export roles in json format
+====================================
+This exports a json object role object containing an array of roles.
+
+```
+bin/query/sumocli_query_roles.py
+```
+
+Data set has some tagging added (with intention it could be used on multiple instances)
+```
+{
+    "orgid": "abcd",
+    "role": {
+        "00000000005854F7": {
+            "parent": "abcd",
+            "id": "00000000005854F7",
+            "name": "Administrator",
+            "dump": {
+                "name": "Administrator",
+                "description": "",
+                "filterPredicate": "*",
+```
+      
 Dependencies
 ============
 
