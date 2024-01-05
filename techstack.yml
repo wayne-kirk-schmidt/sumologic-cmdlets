@@ -1,7 +1,8 @@
 repo_name: wayne-kirk-schmidt/sumologic-cmdlets
 report_id: 4770358999a71eabfa56637d0e0b0fd2
+version: 0.1
 repo_type: Public
-timestamp: '2023-11-10T03:11:30+00:00'
+timestamp: '2024-01-05T09:03:26+00:00'
 requested_by: wayne-kirk-schmidt
 provider: github
 branch: master
@@ -16,6 +17,7 @@ tools:
   category: Languages & Frameworks
   sub_category: Languages
   image_url: https://img.stackshare.io/service/993/pUBY5pVj.png
+  detection_source_url: https://github.com/wayne-kirk-schmidt/sumologic-cmdlets
   detection_source: Repo Metadata
 - name: Git
   description: Fast, scalable, distributed revision control system
@@ -25,6 +27,7 @@ tools:
   category: Build, Test, Deploy
   sub_category: Version Control System
   image_url: https://img.stackshare.io/service/1046/git.png
+  detection_source_url: https://github.com/wayne-kirk-schmidt/sumologic-cmdlets
   detection_source: Repo Metadata
 - name: PyPI
   description: A repository of software for the Python programming language
@@ -34,12 +37,13 @@ tools:
   category: Build, Test, Deploy
   sub_category: Hosted Package Repository
   image_url: https://img.stackshare.io/service/12572/-RIWgodF_400x400.jpg
+  detection_source_url: https://github.com/wayne-kirk-schmidt/sumologic-cmdlets/blob/master/Pipfile
   detection_source: Pipfile
   last_updated_by: Wayne Schmidt
   last_updated_on: 2020-07-19 09:35:03.000000000 Z
 - name: argparse
   description: Python command-line parsing library
-  package_url: https://pypi.org/argparse
+  package_url: https://pypi.org/project/argparse
   version: 1.4.0
   license: Python-2.0
   open_source: true
@@ -47,13 +51,13 @@ tools:
   category: Libraries
   sub_category: PyPI Packages
   image_url: https://img.stackshare.io/package/19871/default_d05f6f09935776629f62e8aed365805502c14921.png
-  detection_source_url: Pipfile.lock
+  detection_source_url: https://github.com/wayne-kirk-schmidt/sumologic-cmdlets/blob/master/Pipfile.lock
   detection_source: Pipfile
   last_updated_by: Wayne Schmidt
   last_updated_on: 2020-07-19 09:35:03.000000000 Z
 - name: boto3
   description: The AWS SDK for Python
-  package_url: https://pypi.org/boto3
+  package_url: https://pypi.org/project/boto3
   version: 1.20.20
   license: Apache-2.0
   open_source: true
@@ -61,13 +65,13 @@ tools:
   category: Libraries
   sub_category: PyPI Packages
   image_url: https://img.stackshare.io/package/19840/default_1c41e593803157c668b26f27387160254f0f5371.png
-  detection_source_url: Pipfile.lock
+  detection_source_url: https://github.com/wayne-kirk-schmidt/sumologic-cmdlets/blob/master/Pipfile.lock
   detection_source: Pipfile
   last_updated_by: Wayne Schmidt
   last_updated_on: 2021-09-22 03:27:05.000000000 Z
 - name: botocore
   description: Low-level, data-driven core of boto 3
-  package_url: https://pypi.org/botocore
+  package_url: https://pypi.org/project/botocore
   version: 1.23.20
   license: Apache-2.0
   open_source: true
@@ -75,13 +79,13 @@ tools:
   category: Libraries
   sub_category: PyPI Packages
   image_url: https://img.stackshare.io/package/19884/default_b8be3f20d4af87021ae3618d5c50b72c985ea31f.png
-  detection_source_url: Pipfile.lock
+  detection_source_url: https://github.com/wayne-kirk-schmidt/sumologic-cmdlets/blob/master/Pipfile.lock
   detection_source: Pipfile
   last_updated_by: Wayne Schmidt
   last_updated_on: 2021-09-22 03:27:05.000000000 Z
 - name: pandas
   description: Powerful data structures for data analysis
-  package_url: https://pypi.org/pandas
+  package_url: https://pypi.org/project/pandas
   version: 1.3.4
   license: BSD-3-Clause
   open_source: true
@@ -89,13 +93,13 @@ tools:
   category: Libraries
   sub_category: PyPI Packages
   image_url: https://img.stackshare.io/package/19837/default_85689b353a3a9409328e253ea28d859d29151e0c.png
-  detection_source_url: Pipfile.lock
+  detection_source_url: https://github.com/wayne-kirk-schmidt/sumologic-cmdlets/blob/master/Pipfile.lock
   detection_source: Pipfile
   last_updated_by: Wayne Schmidt
   last_updated_on: 2020-07-19 09:35:03.000000000 Z
 - name: requests
   description: Python HTTP for Humans
-  package_url: https://pypi.org/requests
+  package_url: https://pypi.org/project/requests
   version: 2.31.0
   license: Apache-2.0
   open_source: true
@@ -103,7 +107,7 @@ tools:
   category: Libraries
   sub_category: PyPI Packages
   image_url: https://img.stackshare.io/package/19826/default_d7c684bf2673f008a9f02ac93901229297a22d7e.png
-  detection_source_url: Pipfile.lock
+  detection_source_url: https://github.com/wayne-kirk-schmidt/sumologic-cmdlets/blob/master/Pipfile.lock
   detection_source: Pipfile
   last_updated_by: Wayne Schmidt
   last_updated_on: 2021-09-22 03:27:05.000000000 Z
