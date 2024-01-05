@@ -1,26 +1,30 @@
 <!--
---- Readme.md Snippet without images Start ---
+&lt;--- Readme.md Snippet without images Start ---&gt;
 ## Tech Stack
 wayne-kirk-schmidt/sumologic-cmdlets is built on the following main stack:
+
 - [Python](https://www.python.org) – Languages
 
 Full tech stack [here](/techstack.md)
---- Readme.md Snippet without images End ---
 
---- Readme.md Snippet with images Start ---
+&lt;--- Readme.md Snippet without images End ---&gt;
+
+&lt;--- Readme.md Snippet with images Start ---&gt;
 ## Tech Stack
 wayne-kirk-schmidt/sumologic-cmdlets is built on the following main stack:
+
 - <img width='25' height='25' src='https://img.stackshare.io/service/993/pUBY5pVj.png' alt='Python'/> [Python](https://www.python.org) – Languages
 
 Full tech stack [here](/techstack.md)
---- Readme.md Snippet with images End ---
+
+&lt;--- Readme.md Snippet with images End ---&gt;
 -->
 <div align="center">
 
 # Tech Stack File
 ![](https://img.stackshare.io/repo.svg "repo") [wayne-kirk-schmidt/sumologic-cmdlets](https://github.com/wayne-kirk-schmidt/sumologic-cmdlets)![](https://img.stackshare.io/public_badge.svg "public")
 <br/><br/>
-|8<br/>Tools used|11/10/23 <br/>Report generated|
+|8<br/>Tools used|01/05/24 <br/>Report generated|
 |------|------|
 </div>
 
@@ -65,13 +69,13 @@ Full tech stack [here](/techstack.md)
 
 |NAME|VERSION|LAST UPDATED|LAST UPDATED BY|LICENSE|VULNERABILITIES|
 |:------|:------|:------|:------|:------|:------|
-|[argparse](https://pypi.org/argparse)|v1.4.0|07/19/20|Wayne Schmidt |Python-2.0|N/A|
-|[boto3](https://pypi.org/boto3)|v1.20.20|09/22/21|Wayne Schmidt |Apache-2.0|N/A|
-|[botocore](https://pypi.org/botocore)|v1.23.20|09/22/21|Wayne Schmidt |Apache-2.0|N/A|
-|[pandas](https://pypi.org/pandas)|v1.3.4|07/19/20|Wayne Schmidt |BSD-3-Clause|N/A|
-|[requests](https://pypi.org/requests)|v2.31.0|09/22/21|Wayne Schmidt |Apache-2.0|N/A|
+|[argparse](https://pypi.org/project/argparse)|v1.4.0|07/19/20|Wayne Schmidt |Python-2.0|N/A|
+|[boto3](https://pypi.org/project/boto3)|v1.20.20|09/22/21|Wayne Schmidt |Apache-2.0|N/A|
+|[botocore](https://pypi.org/project/botocore)|v1.23.20|09/22/21|Wayne Schmidt |Apache-2.0|N/A|
+|[pandas](https://pypi.org/project/pandas)|v1.3.4|07/19/20|Wayne Schmidt |BSD-3-Clause|N/A|
+|[requests](https://pypi.org/project/requests)|v2.31.0|09/22/21|Wayne Schmidt |Apache-2.0|N/A|
 
 <br/>
 <div align='center'>
 
-Generated via [Stack File](https://github.com/apps/stack-file)
+Generated via [Stack File](https://github.com/marketplace/stack-file)
